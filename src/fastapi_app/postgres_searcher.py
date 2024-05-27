@@ -46,19 +46,19 @@ class PostgresSearcher:
 
         vector_query = f"""
             SELECT id, RANK () OVER (ORDER BY embedding <=> :embedding) AS rank
-                FROM items
+                FROM packages
                 {filter_clause_where}
                 ORDER BY embedding <=> :embedding
                 LIMIT 20
             """
 
         fulltext_query = f"""
-            SELECT id, RANK () OVER (ORDER BY ts_rank_cd(to_tsvector('english', description), query) DESC)
-                FROM items, plainto_tsquery('english', :query) query
-                WHERE to_tsvector('english', description) @@ query {filter_clause_and}
-                ORDER BY ts_rank_cd(to_tsvector('english', description), query) DESC
-                LIMIT 20
-            """
+            SELECT id, RANK () OVER (ORDER BY ts_rank_cd(to_tsvector('thai', package_details), query) DESC)
+            FROM packages, plainto_tsquery('thai', :query) query
+            WHERE to_tsvector('thai', package_details) @@ query {filter_clause_and}
+            ORDER BY ts_rank_cd(to_tsvector('thai', package_details), query) DESC
+            LIMIT 20
+        """
 
         hybrid_query = f"""
         WITH vector_search AS (

@@ -71,7 +71,7 @@ class AdvancedRAGChat:
         results = await self.searcher.search_and_embed(
             query_text,
             top=top,
-            enable_vector_search=vector_search,
+            # enable_vector_search=vector_search,
             enable_text_search=text_search,
             filters=filters,
         )

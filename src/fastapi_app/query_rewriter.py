@@ -34,20 +34,20 @@ def build_search_function() -> list[ChatCompletionToolParam]:
                                 },
                             },
                         },
-                        "brand_filter": {
-                            "type": "object",
-                            "description": "Filter search results based on brand of the product",
-                            "properties": {
-                                "comparison_operator": {
-                                    "type": "string",
-                                    "description": "Operator to compare the column value, either '==' or '!='",
-                                },
-                                "value": {
-                                    "type": "string",
-                                    "description": "Value to compare against, e.g. AirStrider",
-                                },
-                            },
-                        },
+                        # "brand_filter": {
+                        #     "type": "object",
+                        #     "description": "Filter search results based on brand of the product",
+                        #     "properties": {
+                        #         "comparison_operator": {
+                        #             "type": "string",
+                        #             "description": "Operator to compare the column value, either '==' or '!='",
+                        #         },
+                        #         "value": {
+                        #             "type": "string",
+                        #             "description": "Value to compare against, e.g. AirStrider",
+                        #         },
+                        #     },
+                        # },
                     },
                     "required": ["search_query"],
                 },
@@ -77,15 +77,15 @@ def extract_search_arguments(chat_completion: ChatCompletion):
                             "value": price_filter["value"],
                         }
                     )
-                if "brand_filter" in arg and arg["brand_filter"]:
-                    brand_filter = arg["brand_filter"]
-                    filters.append(
-                        {
-                            "column": "brand",
-                            "comparison_operator": brand_filter["comparison_operator"],
-                            "value": brand_filter["value"],
-                        }
-                    )
+                # if "brand_filter" in arg and arg["brand_filter"]:
+                #     brand_filter = arg["brand_filter"]
+                #     filters.append(
+                #         {
+                #             "column": "brand",
+                #             "comparison_operator": brand_filter["comparison_operator"],
+                #             "value": brand_filter["value"],
+                #         }
+                #     )
     elif query_text := response_message.content:
         search_query = query_text.strip()
     return search_query, filters
