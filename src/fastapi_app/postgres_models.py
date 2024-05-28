@@ -65,7 +65,7 @@ class Item(Base):
         return model_dict
 
     def to_str_for_rag(self):
-            return f"""package_name: {self.package_name}
+        return f"""package_name: {self.package_name}
 package_picture: {self.package_picture}
 url: {self.url}
 price: {self.price}
