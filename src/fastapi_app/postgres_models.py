@@ -52,7 +52,7 @@ class Item(Base):
     side_effects: Mapped[str] = mapped_column()
     review_4_5_stars: Mapped[str] = mapped_column()
     brand_option_in_thai_name: Mapped[str] = mapped_column()
-    brand_ranking_position: Mapped[str] = mapped_column()
+    brand_ranking_position: Mapped[int] = mapped_column()
     faq: Mapped[str] = mapped_column()
     embedding: Mapped[Vector] = mapped_column(Vector(1536))  # ada-002
 
