@@ -53,10 +53,119 @@ class PostgresSearcher:
             """
 
         fulltext_query = f"""
-            SELECT id, RANK () OVER (ORDER BY ts_rank_cd(to_tsvector('thai', package_details), query) DESC)
+            SELECT id, RANK () OVER (ORDER BY ts_rank_cd(
+                to_tsvector('thai', COALESCE(package_name, '')) ||
+                to_tsvector('thai', COALESCE(package_picture, '')) ||
+                to_tsvector('thai', COALESCE(url, '')) ||
+                to_tsvector('thai', COALESCE(installment_month, '')) ||
+                to_tsvector('thai', COALESCE(installment_limit, '')) ||
+                to_tsvector('thai', COALESCE(price_to_reserve_for_this_package, '')) ||
+                to_tsvector('thai', COALESCE(shop_name, '')) ||
+                to_tsvector('thai', COALESCE(category, '')) ||
+                to_tsvector('thai', COALESCE(category_tags, '')) ||
+                to_tsvector('thai', COALESCE(preview_1_10, '')) ||
+                to_tsvector('thai', COALESCE(selling_point, '')) ||
+                to_tsvector('thai', COALESCE(meta_keywords, '')) ||
+                to_tsvector('thai', COALESCE(brand, '')) ||
+                to_tsvector('thai', COALESCE(min_max_age, '')) ||
+                to_tsvector('thai', COALESCE(locations_time_open_close_how_to_transport_parking_google_maps, '')) ||
+                to_tsvector('thai', COALESCE(meta_description, '')) ||
+                to_tsvector('thai', COALESCE(price_details, '')) ||
+                to_tsvector('thai', COALESCE(package_details, '')) ||
+                to_tsvector('thai', COALESCE(important_info, '')) ||
+                to_tsvector('thai', COALESCE(payment_booking_info, '')) ||
+                to_tsvector('thai', COALESCE(general_info, '')) ||
+                to_tsvector('thai', COALESCE(early_signs_for_diagnosis, '')) ||
+                to_tsvector('thai', COALESCE(how_to_diagnose, '')) ||
+                to_tsvector('thai', COALESCE(hdcare_summary, '')) ||
+                to_tsvector('thai', COALESCE(common_question, '')) ||
+                to_tsvector('thai', COALESCE(know_this_disease, '')) ||
+                to_tsvector('thai', COALESCE(courses_of_action, '')) ||
+                to_tsvector('thai', COALESCE(signals_to_proceed_surgery, '')) ||
+                to_tsvector('thai', COALESCE(get_to_know_this_surgery, '')) ||
+                to_tsvector('thai', COALESCE(comparisons, '')) ||
+                to_tsvector('thai', COALESCE(getting_ready, '')) ||
+                to_tsvector('thai', COALESCE(recovery, '')) ||
+                to_tsvector('thai', COALESCE(side_effects, '')) ||
+                to_tsvector('thai', COALESCE(review_4_5_stars, '')) ||
+                to_tsvector('thai', COALESCE(brand_option_in_thai_name, '')) ||
+                to_tsvector('thai', COALESCE(faq, '')), query) DESC)
             FROM packages, plainto_tsquery('thai', :query) query
-            WHERE to_tsvector('thai', package_details) @@ query {filter_clause_and}
-            ORDER BY ts_rank_cd(to_tsvector('thai', package_details), query) DESC
+            WHERE (
+                to_tsvector('thai', COALESCE(package_name, '')) ||
+                to_tsvector('thai', COALESCE(package_picture, '')) ||
+                to_tsvector('thai', COALESCE(url, '')) ||
+                to_tsvector('thai', COALESCE(installment_month, '')) ||
+                to_tsvector('thai', COALESCE(installment_limit, '')) ||
+                to_tsvector('thai', COALESCE(price_to_reserve_for_this_package, '')) ||
+                to_tsvector('thai', COALESCE(shop_name, '')) ||
+                to_tsvector('thai', COALESCE(category, '')) ||
+                to_tsvector('thai', COALESCE(category_tags, '')) ||
+                to_tsvector('thai', COALESCE(preview_1_10, '')) ||
+                to_tsvector('thai', COALESCE(selling_point, '')) ||
+                to_tsvector('thai', COALESCE(meta_keywords, '')) ||
+                to_tsvector('thai', COALESCE(brand, '')) ||
+                to_tsvector('thai', COALESCE(min_max_age, '')) ||
+                to_tsvector('thai', COALESCE(locations_time_open_close_how_to_transport_parking_google_maps, '')) ||
+                to_tsvector('thai', COALESCE(meta_description, '')) ||
+                to_tsvector('thai', COALESCE(price_details, '')) ||
+                to_tsvector('thai', COALESCE(package_details, '')) ||
+                to_tsvector('thai', COALESCE(important_info, '')) ||
+                to_tsvector('thai', COALESCE(payment_booking_info, '')) ||
+                to_tsvector('thai', COALESCE(general_info, '')) ||
+                to_tsvector('thai', COALESCE(early_signs_for_diagnosis, '')) ||
+                to_tsvector('thai', COALESCE(how_to_diagnose, '')) ||
+                to_tsvector('thai', COALESCE(hdcare_summary, '')) ||
+                to_tsvector('thai', COALESCE(common_question, '')) ||
+                to_tsvector('thai', COALESCE(know_this_disease, '')) ||
+                to_tsvector('thai', COALESCE(courses_of_action, '')) ||
+                to_tsvector('thai', COALESCE(signals_to_proceed_surgery, '')) ||
+                to_tsvector('thai', COALESCE(get_to_know_this_surgery, '')) ||
+                to_tsvector('thai', COALESCE(comparisons, '')) ||
+                to_tsvector('thai', COALESCE(getting_ready, '')) ||
+                to_tsvector('thai', COALESCE(recovery, '')) ||
+                to_tsvector('thai', COALESCE(side_effects, '')) ||
+                to_tsvector('thai', COALESCE(review_4_5_stars, '')) ||
+                to_tsvector('thai', COALESCE(brand_option_in_thai_name, '')) ||
+                to_tsvector('thai', COALESCE(faq, ''))
+            ) @@ query {filter_clause_and}
+            ORDER BY ts_rank_cd(
+                to_tsvector('thai', COALESCE(package_name, '')) ||
+                to_tsvector('thai', COALESCE(package_picture, '')) ||
+                to_tsvector('thai', COALESCE(url, '')) ||
+                to_tsvector('thai', COALESCE(installment_month, '')) ||
+                to_tsvector('thai', COALESCE(installment_limit, '')) ||
+                to_tsvector('thai', COALESCE(price_to_reserve_for_this_package, '')) ||
+                to_tsvector('thai', COALESCE(shop_name, '')) ||
+                to_tsvector('thai', COALESCE(category, '')) ||
+                to_tsvector('thai', COALESCE(category_tags, '')) ||
+                to_tsvector('thai', COALESCE(preview_1_10, '')) ||
+                to_tsvector('thai', COALESCE(selling_point, '')) ||
+                to_tsvector('thai', COALESCE(meta_keywords, '')) ||
+                to_tsvector('thai', COALESCE(brand, '')) ||
+                to_tsvector('thai', COALESCE(min_max_age, '')) ||
+                to_tsvector('thai', COALESCE(locations_time_open_close_how_to_transport_parking_google_maps, '')) ||
+                to_tsvector('thai', COALESCE(meta_description, '')) ||
+                to_tsvector('thai', COALESCE(price_details, '')) ||
+                to_tsvector('thai', COALESCE(package_details, '')) ||
+                to_tsvector('thai', COALESCE(important_info, '')) ||
+                to_tsvector('thai', COALESCE(payment_booking_info, '')) ||
+                to_tsvector('thai', COALESCE(general_info, '')) ||
+                to_tsvector('thai', COALESCE(early_signs_for_diagnosis, '')) ||
+                to_tsvector('thai', COALESCE(how_to_diagnose, '')) ||
+                to_tsvector('thai', COALESCE(hdcare_summary, '')) ||
+                to_tsvector('thai', COALESCE(common_question, '')) ||
+                to_tsvector('thai', COALESCE(know_this_disease, '')) ||
+                to_tsvector('thai', COALESCE(courses_of_action, '')) ||
+                to_tsvector('thai', COALESCE(signals_to_proceed_surgery, '')) ||
+                to_tsvector('thai', COALESCE(get_to_know_this_surgery, '')) ||
+                to_tsvector('thai', COALESCE(comparisons, '')) ||
+                to_tsvector('thai', COALESCE(getting_ready, '')) ||
+                to_tsvector('thai', COALESCE(recovery, '')) ||
+                to_tsvector('thai', COALESCE(side_effects, '')) ||
+                to_tsvector('thai', COALESCE(review_4_5_stars, '')) ||
+                to_tsvector('thai', COALESCE(brand_option_in_thai_name, '')) ||
+                to_tsvector('thai', COALESCE(faq, '')), query) DESC
             LIMIT 20
         """
 
