@@ -15,7 +15,8 @@ load_dotenv()
 async def update_embeddings():
     engine = await create_postgres_engine_from_env()
     azure_credential = DefaultAzureCredential()
-    openai_embed_client, openai_embed_model, openai_embed_dimensions = await create_openai_embed_client(azure_credential)
+    openai_embed_client, openai_embed_model, openai_embed_dimensions \
+        = await create_openai_embed_client(azure_credential)
 
     async with async_sessionmaker(engine, expire_on_commit=False)() as session:
         async with session.begin():
