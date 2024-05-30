@@ -84,7 +84,7 @@ faq: {self.faq}
 """
 
     def to_str_for_embedding(self):
-        return f"Name: {self.package_name} Description: {self.package_details} Type: {self.meta_keywords}"
+        return f"Name: {self.package_name} Description: {self.package_details}"
 
 
 # Define HNSW index to support vector similarity search through the vector_cosine_ops access method (cosine distance).

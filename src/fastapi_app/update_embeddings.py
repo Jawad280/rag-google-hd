@@ -1,18 +1,21 @@
 import asyncio
 
+from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from fastapi_app.embeddings import compute_text_embedding
 from fastapi_app.openai_clients import create_openai_embed_client
-from fastapi_app.postgres_engine import create_postgres_engine
+from fastapi_app.postgres_engine import create_postgres_engine_from_env
 from fastapi_app.postgres_models import Item
 
+load_dotenv()
 
 async def update_embeddings():
-    engine = await create_postgres_engine()
-    openai_embed_client, openai_embed_model, openai_embed_dimensions = await create_openai_embed_client()
+    engine = await create_postgres_engine_from_env()
+    azure_credential = DefaultAzureCredential()
+    openai_embed_client, openai_embed_model, openai_embed_dimensions = await create_openai_embed_client(azure_credential)
 
     async with async_sessionmaker(engine, expire_on_commit=False)() as session:
         async with session.begin():
