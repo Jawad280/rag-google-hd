@@ -1,7 +1,7 @@
 import asyncio
-import os
 
 from azure.identity import DefaultAzureCredential
+
 
 async def get_token():
     credential = DefaultAzureCredential()
