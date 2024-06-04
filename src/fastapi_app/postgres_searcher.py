@@ -45,11 +45,59 @@ class PostgresSearcher:
         filter_clause_where, filter_clause_and = self.build_filter_clause(filters)
 
         vector_query = f"""
-            SELECT id, RANK () OVER (ORDER BY embedding <=> :embedding) AS rank
-                FROM packages
+            WITH closest_embedding AS (
+                SELECT 
+                    id,
+                    LEAST(
+                        COALESCE(embedding_package_name <=> :embedding, 1), 
+                        COALESCE(embedding_package_picture <=> :embedding, 1), 
+                        COALESCE(embedding_url <=> :embedding, 1),
+                        COALESCE(embedding_installment_month <=> :embedding, 1),
+                        COALESCE(embedding_installment_limit <=> :embedding, 1),
+                        COALESCE(embedding_price_to_reserve_for_this_package <=> :embedding, 1),
+                        COALESCE(embedding_shop_name <=> :embedding, 1),
+                        COALESCE(embedding_category <=> :embedding, 1),
+                        COALESCE(embedding_category_tags <=> :embedding, 1),
+                        COALESCE(embedding_preview_1_10 <=> :embedding, 1),
+                        COALESCE(embedding_selling_point <=> :embedding, 1),
+                        COALESCE(embedding_meta_keywords <=> :embedding, 1),
+                        COALESCE(embedding_brand <=> :embedding, 1),
+                        COALESCE(embedding_min_max_age <=> :embedding, 1),
+                        COALESCE(embedding_locations <=> :embedding, 1),
+                        COALESCE(embedding_meta_description <=> :embedding, 1),
+                        COALESCE(embedding_price_details <=> :embedding, 1),
+                        COALESCE(embedding_package_details <=> :embedding, 1),
+                        COALESCE(embedding_important_info <=> :embedding, 1),
+                        COALESCE(embedding_payment_booking_info <=> :embedding, 1),
+                        COALESCE(embedding_general_info <=> :embedding, 1),
+                        COALESCE(embedding_early_signs_for_diagnosis <=> :embedding, 1),
+                        COALESCE(embedding_how_to_diagnose <=> :embedding, 1),
+                        COALESCE(embedding_hdcare_summary <=> :embedding, 1),
+                        COALESCE(embedding_common_question <=> :embedding, 1),
+                        COALESCE(embedding_know_this_disease <=> :embedding, 1),
+                        COALESCE(embedding_courses_of_action <=> :embedding, 1),
+                        COALESCE(embedding_signals_to_proceed_surgery <=> :embedding, 1),
+                        COALESCE(embedding_get_to_know_this_surgery <=> :embedding, 1),
+                        COALESCE(embedding_comparisons <=> :embedding, 1),
+                        COALESCE(embedding_getting_ready <=> :embedding, 1),
+                        COALESCE(embedding_recovery <=> :embedding, 1),
+                        COALESCE(embedding_side_effects <=> :embedding, 1),
+                        COALESCE(embedding_review_4_5_stars <=> :embedding, 1),
+                        COALESCE(embedding_brand_option_in_thai_name <=> :embedding, 1),
+                        COALESCE(embedding_faq <=> :embedding, 1)
+                    ) AS min_distance
+                FROM 
+                    packages
                 {filter_clause_where}
-                ORDER BY embedding <=> :embedding
-                LIMIT 20
+            )
+            SELECT 
+                id, 
+                RANK() OVER (ORDER BY min_distance) AS rank
+            FROM 
+                closest_embedding
+            ORDER BY 
+                min_distance
+            LIMIT 20
             """
 
         fulltext_query = f"""
@@ -68,7 +116,7 @@ class PostgresSearcher:
                 to_tsvector('thai', COALESCE(meta_keywords, '')) ||
                 to_tsvector('thai', COALESCE(brand, '')) ||
                 to_tsvector('thai', COALESCE(min_max_age, '')) ||
-                to_tsvector('thai', COALESCE(locations_time_open_close_how_to_transport_parking_google_maps, '')) ||
+                to_tsvector('thai', COALESCE(locations, '')) ||
                 to_tsvector('thai', COALESCE(meta_description, '')) ||
                 to_tsvector('thai', COALESCE(price_details, '')) ||
                 to_tsvector('thai', COALESCE(package_details, '')) ||
@@ -106,7 +154,7 @@ class PostgresSearcher:
                 to_tsvector('thai', COALESCE(meta_keywords, '')) ||
                 to_tsvector('thai', COALESCE(brand, '')) ||
                 to_tsvector('thai', COALESCE(min_max_age, '')) ||
-                to_tsvector('thai', COALESCE(locations_time_open_close_how_to_transport_parking_google_maps, '')) ||
+                to_tsvector('thai', COALESCE(locations, '')) ||
                 to_tsvector('thai', COALESCE(meta_description, '')) ||
                 to_tsvector('thai', COALESCE(price_details, '')) ||
                 to_tsvector('thai', COALESCE(package_details, '')) ||
@@ -144,7 +192,7 @@ class PostgresSearcher:
                 to_tsvector('thai', COALESCE(meta_keywords, '')) ||
                 to_tsvector('thai', COALESCE(brand, '')) ||
                 to_tsvector('thai', COALESCE(min_max_age, '')) ||
-                to_tsvector('thai', COALESCE(locations_time_open_close_how_to_transport_parking_google_maps, '')) ||
+                to_tsvector('thai', COALESCE(locations, '')) ||
                 to_tsvector('thai', COALESCE(meta_description, '')) ||
                 to_tsvector('thai', COALESCE(price_details, '')) ||
                 to_tsvector('thai', COALESCE(package_details, '')) ||
