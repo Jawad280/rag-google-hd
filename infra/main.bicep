@@ -23,6 +23,8 @@ param principalId string = ''
   'canadaeast'
   'northcentralus'
   'southcentralus'
+  'eastus'
+  'eastus2'
 ])
 @metadata({
   azd: {
@@ -54,9 +56,9 @@ param azureOpenAiAPIVersion string = '2024-03-01-preview'
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
 param chatDeploymentCapacity int = 0
 var chatConfig = {
-  modelName: !empty(chatModelName) ? chatModelName : deployAzureOpenAI ? 'gpt-35-turbo' : 'gpt-3.5-turbo'
+  modelName: !empty(chatModelName) ? chatModelName : deployAzureOpenAI ? 'gpt-4o' : 'gpt-4o'
   deploymentName: !empty(chatDeploymentName) ? chatDeploymentName : 'chat'
-  deploymentVersion: !empty(chatDeploymentVersion) ? chatDeploymentVersion : '0125'
+  deploymentVersion: !empty(chatDeploymentVersion) ? chatDeploymentVersion : '2024-05-13'
   deploymentCapacity: chatDeploymentCapacity != 0 ? chatDeploymentCapacity : 30
 }
 
@@ -195,7 +197,7 @@ module web 'web.bicep' = {
       }
       {
         name: 'OPENAICOM_CHAT_MODEL'
-        value: deployAzureOpenAI ? '' : 'gpt-3.5-turbo'
+        value: deployAzureOpenAI ? '' : 'gpt-4o'
       }
       {
         name: 'OPENAI_EMBED_HOST'
