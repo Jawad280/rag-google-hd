@@ -179,23 +179,47 @@ class Item(Base):
         return model_dict
 
     def to_str_for_rag(self):
-        return f"""package_name: {self.package_name}
-package_picture: {self.package_picture}
-url: {self.url}
-price: {self.price}
-cash_discount: {self.cash_discount}
-installment_month: {self.installment_month}
-installment_limit: {self.installment_limit}
-price_to_reserve_for_this_package: {self.price_to_reserve_for_this_package}
-brand: {self.brand}
-price_details: {self.price_details}
-package_details: {self.package_details}
-important_info: {self.important_info}
-payment_booking_info: {self.payment_booking_info}
-general_info: {self.general_info}
-brand_ranking_position: {self.brand_ranking_position}
-faq: {self.faq}
-"""
+        return f"""
+    package_name: {self.package_name}
+    package_picture: {self.package_picture}
+    url: {self.url}
+    price: {self.price}
+    cash_discount: {self.cash_discount}
+    installment_month: {self.installment_month}
+    installment_limit: {self.installment_limit}
+    price_to_reserve_for_this_package: {self.price_to_reserve_for_this_package}
+    shop_name: {self.shop_name}
+    category: {self.category}
+    category_tags: {self.category_tags}
+    preview_1_10: {self.preview_1_10}
+    selling_point: {self.selling_point}
+    meta_keywords: {self.meta_keywords}
+    brand: {self.brand}
+    min_max_age: {self.min_max_age}
+    locations: {self.locations}
+    meta_description: {self.meta_description}
+    price_details: {self.price_details}
+    package_details: {self.package_details}
+    important_info: {self.important_info}
+    payment_booking_info: {self.payment_booking_info}
+    general_info: {self.general_info}
+    early_signs_for_diagnosis: {self.early_signs_for_diagnosis}
+    how_to_diagnose: {self.how_to_diagnose}
+    hdcare_summary: {self.hdcare_summary}
+    common_question: {self.common_question}
+    know_this_disease: {self.know_this_disease}
+    courses_of_action: {self.courses_of_action}
+    signals_to_proceed_surgery: {self.signals_to_proceed_surgery}
+    get_to_know_this_surgery: {self.get_to_know_this_surgery}
+    comparisons: {self.comparisons}
+    getting_ready: {self.getting_ready}
+    recovery: {self.recovery}
+    side_effects: {self.side_effects}
+    review_4_5_stars: {self.review_4_5_stars}
+    brand_option_in_thai_name: {self.brand_option_in_thai_name}
+    brand_ranking_position: {self.brand_ranking_position}
+    faq: {self.faq}
+    """
 
     def to_str_for_embedding_package_name(self):
         return f"Package Name: {self.package_name}" if self.package_name else ""
