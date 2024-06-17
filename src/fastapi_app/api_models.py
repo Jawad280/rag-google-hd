@@ -1,15 +1,25 @@
-from typing import Any
+from typing import Any, List, Union, Optional
 
 from pydantic import BaseModel
 
+class TextContent(BaseModel):
+    type: str
+    text: str
+
+class ImageUrl(BaseModel):
+    url: str
+    detail: str = "auto"
+
+class ImageContent(BaseModel):
+    type: str
+    image_url: ImageUrl
 
 class Message(BaseModel):
-    content: str
     role: str = "user"
-
+    content: Union[str, List[Union[TextContent, ImageContent]]]
 
 class ChatRequest(BaseModel):
-    messages: list[Message]
+    messages: List[Message]
     context: dict = {}
 
 

@@ -14,7 +14,7 @@ class Base(DeclarativeBase, MappedAsDataclass):
 
 class Item(Base):
     __tablename__ = "packages"
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     package_name: Mapped[str] = mapped_column()
     package_picture: Mapped[str] = mapped_column()
     url: Mapped[str] = mapped_column()
@@ -59,7 +59,7 @@ class Item(Base):
     embedding_url: Mapped[Vector] = mapped_column(Vector(1536))
     embedding_installment_month: Mapped[Vector] = mapped_column(Vector(1536))
     embedding_installment_limit: Mapped[Vector] = mapped_column(Vector(1536))
-    embedding_price_to_reserve_for_this_package: Mapped[Vector] = mapped_column(Vector(1536))
+    embedding_price_to_reserve_for_this_package: Mapped[Vector] = (mapped_column(Vector(1536)))
     embedding_shop_name: Mapped[Vector] = mapped_column(Vector(1536))
     embedding_category: Mapped[Vector] = mapped_column(Vector(1536))
     embedding_category_tags: Mapped[Vector] = mapped_column(Vector(1536))
@@ -178,7 +178,16 @@ class Item(Base):
                 del model_dict[col]
         return model_dict
 
-    def to_str_for_rag(self):
+    def to_str_for_broad_rag(self):
+        return f"""
+    package_name: {self.package_name}
+    url: {self.url}
+    locations: {self.locations}
+    price: {self.price}
+    brand: {self.brand}
+    """
+
+    def to_str_for_narrow_rag(self):
         return f"""
     package_name: {self.package_name}
     package_picture: {self.package_picture}

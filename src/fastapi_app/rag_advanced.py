@@ -1,3 +1,4 @@
+import copy
 import pathlib
 from collections.abc import AsyncGenerator
 from typing import (
@@ -8,7 +9,7 @@ from openai import AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
 )
-from openai_messages_token_helper import build_messages, get_token_limit
+from openai_messages_token_helper import get_token_limit
 
 from .api_models import ThoughtStep
 from .postgres_searcher import PostgresSearcher
@@ -36,23 +37,21 @@ class AdvancedRAGChat:
     async def run(
         self, messages: list[dict], overrides: dict[str, Any] = {}
     ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
+        # Normalize the message format
+        for message in messages:
+            if isinstance(message['content'], str):
+                message['content'] = [{'type': 'text', 'text': message['content']}]
+
+        # Determine the search mode and the number of results to return
         text_search = overrides.get("retrieval_mode") in ["text", "hybrid", None]
         vector_search = overrides.get("retrieval_mode") in ["vectors", "hybrid", None]
         top = overrides.get("top", 3)
 
-        original_user_query = messages[-1]["content"]
-        past_messages = messages[:-1]
 
         # Generate an optimized keyword search query based on the chat history and the last question
+        query_messages = copy.deepcopy(messages)
+        query_messages.insert(0, {"role": "system", "content": self.query_prompt_template})
         query_response_token_limit = 500
-        query_messages = build_messages(
-            model=self.chat_model,
-            system_prompt=self.query_prompt_template,
-            new_user_content=original_user_query,
-            past_messages=past_messages,
-            max_tokens=self.chat_token_limit - query_response_token_limit,  # TODO: count functions
-            fallback_to_default=True,
-        )
 
         chat_completion: ChatCompletion = await self.openai_chat_client.chat.completions.create(
             messages=query_messages,  # type: ignore
@@ -75,31 +74,32 @@ class AdvancedRAGChat:
             enable_text_search=text_search,
             filters=filters,
         )
-
-        sources_content = [f"[{(item.id)}]:{item.to_str_for_rag()}\n\n" for item in results]
+        
+        # Check if the url_filter is used to determine the context to send to the LLM
+        if any(f['column'] == 'url' and f['value'] != '' for f in filters):
+            sources_content = [f"[{(item.id)}]:{item.to_str_for_narrow_rag()}\n\n" for item in results] # all details
+        else:
+            sources_content = [f"[{(item.id)}]:{item.to_str_for_broad_rag()}\n\n" for item in results] # important details
+        
         content = "\n".join(sources_content)
 
-        # Generate a contextual and content specific answer using the search results and chat history
+        # Build messages for the final chat completion
+        answer_messages = copy.deepcopy(messages)
+        answer_messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
+        answer_messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + content})
         response_token_limit = 1024
-        messages = build_messages(
-            model=self.chat_model,
-            system_prompt=overrides.get("prompt_template") or self.answer_prompt_template,
-            new_user_content=original_user_query + "\n\nSources:\n" + content,
-            past_messages=past_messages,
-            max_tokens=self.chat_token_limit - response_token_limit,
-            fallback_to_default=True,
-        )
 
         chat_completion_response = await self.openai_chat_client.chat.completions.create(
             # Azure OpenAI takes the deployment name as the model name
             model=self.chat_deployment if self.chat_deployment else self.chat_model,
-            messages=messages,
+            messages=answer_messages,
             temperature=overrides.get("temperature", 0.3),
             max_tokens=response_token_limit,
             n=1,
             stream=False,
         )
         chat_resp = chat_completion_response.model_dump()
+
         chat_resp["choices"][0]["context"] = {
             "data_points": {"text": sources_content},
             "thoughts": [

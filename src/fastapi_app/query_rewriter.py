@@ -18,15 +18,15 @@ def build_search_function() -> list[ChatCompletionToolParam]:
                     "properties": {
                         "search_query": {
                             "type": "string",
-                            "description": "Query string to use for full text search, e.g. 'red shoes'",
+                            "description": "Query string to use for full text search, e.g. 'ตรวจสุขภาพ'",
                         },
                         "price_filter": {
                             "type": "object",
-                            "description": "Filter search results based on price of the product",
+                            "description": "Filter search results based on price in Thai Baht of the package",
                             "properties": {
                                 "comparison_operator": {
                                     "type": "string",
-                                    "description": "Operator to compare the column value, either '>', '<', '>=', '<=', '=='",  # noqa
+                                    "description": "Operator to compare the column value, either '>', '<', '>=', '<=', '='",  # noqa
                                 },
                                 "value": {
                                     "type": "number",
@@ -34,22 +34,25 @@ def build_search_function() -> list[ChatCompletionToolParam]:
                                 },
                             },
                         },
-                        # "brand_filter": {
-                        #     "type": "object",
-                        #     "description": "Filter search results based on brand of the product",
-                        #     "properties": {
-                        #         "comparison_operator": {
-                        #             "type": "string",
-                        #             "description": "Operator to compare the column value, either '==' or '!='",
-                        #         },
-                        #         "value": {
-                        #             "type": "string",
-                        #             "description": "Value to compare against, e.g. AirStrider",
-                        #         },
-                        #     },
-                        # },
+                        "url_filter": {
+                            "type": "object",
+                            "description": "Filter search results based on url of the package. The url is package specific.",
+                            "properties": {
+                                "comparison_operator": {
+                                    "type": "string",
+                                    "description": "Operator to compare the column value, either '=' or '!='",
+                                },
+                                "value": {
+                                    "type": "string",
+                                    "description": """
+                                    The package URL to compare against.
+                                    Don't pass anything if you can't specify the exact URL from user query.
+                                    """,
+                                },
+                            },
+                        },
                     },
-                    "required": ["search_query"],
+                    "required": ["search_query", "url_filter"],
                 },
             },
         }
@@ -67,6 +70,7 @@ def extract_search_arguments(chat_completion: ChatCompletion):
             function = tool.function
             if function.name == "search_database":
                 arg = json.loads(function.arguments)
+                print(arg)
                 search_query = arg.get("search_query")
                 if "price_filter" in arg and arg["price_filter"]:
                     price_filter = arg["price_filter"]
@@ -77,15 +81,16 @@ def extract_search_arguments(chat_completion: ChatCompletion):
                             "value": price_filter["value"],
                         }
                     )
-                # if "brand_filter" in arg and arg["brand_filter"]:
-                #     brand_filter = arg["brand_filter"]
-                #     filters.append(
-                #         {
-                #             "column": "brand",
-                #             "comparison_operator": brand_filter["comparison_operator"],
-                #             "value": brand_filter["value"],
-                #         }
-                #     )
+                if "url_filter" in arg and arg["url_filter"]:
+                    url_filter = arg["url_filter"]
+                    if url_filter["value"] != "https://hdmall.co.th":
+                        filters.append(
+                            {
+                                "column": "url",
+                                "comparison_operator": url_filter["comparison_operator"],
+                                "value": url_filter["value"],
+                            }
+                        )
     elif query_text := response_message.content:
         search_query = query_text.strip()
     return search_query, filters
