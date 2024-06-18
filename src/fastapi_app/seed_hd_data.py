@@ -47,6 +47,11 @@ def convert_to_float(value):
     except (ValueError, TypeError):
         return None
 
+def convert_to_str(value):
+    if value is None:
+        return None
+    return str(value)
+
 async def seed_data(engine):
     logger.info("Checking if the packages table exists...")
     async with engine.begin() as conn:
@@ -63,11 +68,8 @@ async def seed_data(engine):
             return
 
     async with async_sessionmaker(engine, expire_on_commit=False)() as session:
-        # Read the CSV file
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        csv_path = (
-            os.path.join(current_dir, "packages.csv")
-        )
+        csv_path = os.path.join(current_dir, "packages.csv")
 
         try:
             df = pd.read_csv(csv_path, delimiter=',', quotechar='"', escapechar='\\', on_bad_lines='skip', encoding='utf-8')
@@ -75,28 +77,22 @@ async def seed_data(engine):
             logger.error(f"Error reading CSV file: {e}")
             return
 
-        # Replace NaN values in string columns with None
         str_columns = df.select_dtypes(include=[object]).columns
         df[str_columns] = df[str_columns].replace({np.nan: None})
 
-        # Replace NaN values in numeric columns with None
         num_columns = df.select_dtypes(include=[np.number]).columns
         df[num_columns] = df[num_columns].replace({np.nan: None})
 
-        # Convert DataFrame to list of dictionaries
         records = df.to_dict(orient='records')
 
         logger.info("Starting to insert records into the database...")
-        # Insert records into the database with progress bar
         for record in tqdm(records, desc="Inserting records"):
             try:
-                # Ensure the id is cast to integer
                 record["id"] = convert_to_int(record["id"])
                 if record["id"] is None:
                     logger.error(f"Skipping record with invalid id: {record}")
                     continue
                 
-                # Explicitly cast other fields to the appropriate types
                 if "price" in record:
                     record["price"] = convert_to_float(record["price"])
                 if "cash_discount" in record:
@@ -104,7 +100,6 @@ async def seed_data(engine):
                 if "brand_ranking_position" in record:
                     record["brand_ranking_position"] = convert_to_int(record["brand_ranking_position"])
 
-                # Skip record if price or cash_discount cannot be converted to float
                 if record["price"] is None or record["cash_discount"] is None:
                     logger.error(f"Skipping record with invalid numeric fields: {record}")
                     continue
@@ -113,13 +108,15 @@ async def seed_data(engine):
                 if item.scalars().first():
                     continue
 
-                # Create a new Item instance without embedding columns
                 item_data = {key: value for key, value in record.items() if key in Item.__table__.columns}
-                
-                # Set embedding fields to None
+
                 for field in embedding_fields:
                     item_data[field] = None
-                
+
+                for key, value in item_data.items():
+                    if key not in ["id", "price", "cash_discount", "brand_ranking_position"]:
+                        item_data[key] = convert_to_str(value)
+
                 item = Item(**item_data)
                 session.add(item)
 
@@ -142,7 +139,6 @@ async def main():
     parser.add_argument("--database", type=str, help="Postgres database")
     parser.add_argument("--sslmode", type=str, help="Postgres sslmode")
 
-    # if no args are specified, use environment variables
     args = parser.parse_args()
     if args.host is None:
         engine = await create_postgres_engine_from_env()
@@ -150,7 +146,6 @@ async def main():
         engine = await create_postgres_engine_from_args(args)
 
     await seed_data(engine)
-
     await engine.dispose()
 
 if __name__ == "__main__":
