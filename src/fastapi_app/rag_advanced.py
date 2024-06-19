@@ -84,15 +84,14 @@ class AdvancedRAGChat:
         content = "\n".join(sources_content)
 
         # Build messages for the final chat completion
-        answer_messages = copy.deepcopy(messages)
-        answer_messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
-        answer_messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + content})
+        messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
+        messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + content})
         response_token_limit = 1024
 
         chat_completion_response = await self.openai_chat_client.chat.completions.create(
             # Azure OpenAI takes the deployment name as the model name
             model=self.chat_deployment if self.chat_deployment else self.chat_model,
-            messages=answer_messages,
+            messages=messages,
             temperature=overrides.get("temperature", 0.3),
             max_tokens=response_token_limit,
             n=1,
