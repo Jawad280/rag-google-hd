@@ -35,7 +35,7 @@ class PostgresSearcher:
             return f"WHERE {filter_clause}", f"AND {filter_clause}"
         return "", ""
 
-    async def search(
+    async def hybrid_search(
         self,
         query_text: str | None,
         query_vector: list[float] | list,
@@ -281,4 +281,33 @@ class PostgresSearcher:
         if not enable_text_search:
             query_text = None
 
-        return await self.search(query_text, vector, top, filters)
+        return await self.hybrid_search(query_text, vector, top, filters)
+
+    async def simple_sql_search(
+        self, 
+        filters: list[dict]
+    ) -> list[Item]:
+        """
+        Search items by simple SQL query with filters.
+        """
+        filter_clause_where, _ = self.build_filter_clause(filters)
+        sql = f"""
+        SELECT id FROM packages
+        {filter_clause_where}
+        LIMIT 1
+        """
+        
+        async with self.async_session_maker() as session:
+            results = (
+                await session.execute(
+                    text(sql).columns(id=Integer)
+                )
+            ).fetchall()
+
+            # Convert results to Item models
+            items = []
+            for result in results:
+                item_id = result.id
+                item = await session.execute(select(Item).where(Item.id == item_id))
+                items.append(item.scalar())
+            return items

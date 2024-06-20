@@ -6,7 +6,7 @@ from openai.types.chat import (
 )
 
 
-def build_search_function() -> list[ChatCompletionToolParam]:
+def build_hybrid_search_function() -> list[ChatCompletionToolParam]:
     return [
         {
             "type": "function",
@@ -26,7 +26,7 @@ def build_search_function() -> list[ChatCompletionToolParam]:
                             "properties": {
                                 "comparison_operator": {
                                     "type": "string",
-                                    "description": "Operator to compare the column value, either '>', '<', '>=', '<=', '='",  # noqa
+                                    "description": "Operator to compare the column value, either '>', '<', '>=', '<=', '='",
                                 },
                                 "value": {
                                     "type": "number",
@@ -34,30 +34,12 @@ def build_search_function() -> list[ChatCompletionToolParam]:
                                 },
                             },
                         },
-                        "url_filter": {
-                            "type": "object",
-                            "description": "Filter search results based on url of the package. The url is package specific.",
-                            "properties": {
-                                "comparison_operator": {
-                                    "type": "string",
-                                    "description": "Operator to compare the column value, either '=' or '!='",
-                                },
-                                "value": {
-                                    "type": "string",
-                                    "description": """
-                                    The package URL to compare against.
-                                    Don't pass anything if you can't specify the exact URL from user query.
-                                    """,
-                                },
-                            },
-                        },
                     },
-                    "required": ["search_query", "url_filter"],
+                    "required": ["search_query"],
                 },
             },
         }
     ]
-
 
 def extract_search_arguments(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
@@ -70,7 +52,6 @@ def extract_search_arguments(chat_completion: ChatCompletion):
             function = tool.function
             if function.name == "search_database":
                 arg = json.loads(function.arguments)
-                print(arg)
                 search_query = arg.get("search_query")
                 if "price_filter" in arg and arg["price_filter"]:
                     price_filter = arg["price_filter"]
@@ -81,16 +62,70 @@ def extract_search_arguments(chat_completion: ChatCompletion):
                             "value": price_filter["value"],
                         }
                     )
-                if "url_filter" in arg and arg["url_filter"]:
-                    url_filter = arg["url_filter"]
-                    if url_filter["value"] != "https://hdmall.co.th":
-                        filters.append(
-                            {
-                                "column": "url",
-                                "comparison_operator": url_filter["comparison_operator"],
-                                "value": url_filter["value"],
-                            }
-                        )
     elif query_text := response_message.content:
         search_query = query_text.strip()
     return search_query, filters
+
+
+def build_specify_package_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "specify_package",
+                "description": """
+                Specify the exact URL or package name from past messages if they are relevant to the most recent user's message.
+                This tool is intended to find specific packages previously mentioned and should not be used for general inquiries or price-based requests.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": """
+                            The exact URL of the package from past messages,
+                            e.g. 'https://hdmall.co.th/dental-clinics/xray-for-orthodontics-1-csdc'
+                            """
+                        },
+                        "package_name": {
+                            "type": "string",
+                            "description": """
+                            The exact package name from past messages,
+                            always contains the package name and the hospital name,
+                            e.g. 'เอกซเรย์สำหรับการจัดฟัน ที่ CSDC'
+                            """
+                        }
+                    },
+                    "required": [],
+                },
+            },
+        }
+    ]
+
+def handle_specify_package_function_call(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    filters = []
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "specify_package":
+                args = json.loads(tool.function.arguments)
+                url = args.get("url")
+                package_name = args.get("package_name")
+                if url:
+                    filters.append(
+                        {
+                            "column": "url",
+                            "comparison_operator": "=",
+                            "value": url,
+                        }
+                    )
+                if package_name:
+                    filters.append(
+                        {
+                            "column": "package_name",
+                            "comparison_operator": "=",
+                            "value": package_name,
+                        }
+                    )
+    return filters
+

@@ -13,7 +13,12 @@ from openai_messages_token_helper import get_token_limit
 
 from .api_models import ThoughtStep
 from .postgres_searcher import PostgresSearcher
-from .query_rewriter import build_search_function, extract_search_arguments
+from .query_rewriter import (
+    build_hybrid_search_function,
+    extract_search_arguments,
+    build_specify_package_function,
+    handle_specify_package_function_call
+)
 
 
 class AdvancedRAGChat:
@@ -31,6 +36,7 @@ class AdvancedRAGChat:
         self.chat_deployment = chat_deployment
         self.chat_token_limit = get_token_limit(chat_model, default_to_minimum=True)
         current_dir = pathlib.Path(__file__).parent
+        self.specify_package_prompt_template = open(current_dir / "prompts/specify_package.txt").read()
         self.query_prompt_template = open(current_dir / "prompts/query.txt").read()
         self.answer_prompt_template = open(current_dir / "prompts/answer.txt").read()
 
@@ -47,40 +53,95 @@ class AdvancedRAGChat:
         vector_search = overrides.get("retrieval_mode") in ["vectors", "hybrid", None]
         top = overrides.get("top", 3)
 
+        # Generate a prompt to specify the package if the user is referring to a specific package
+        specify_package_messages = copy.deepcopy(messages)
+        specify_package_messages.insert(0, {"role": "system", "content": self.specify_package_prompt_template})
+        specify_package_token_limit = 300
 
-        # Generate an optimized keyword search query based on the chat history and the last question
-        query_messages = copy.deepcopy(messages)
-        query_messages.insert(0, {"role": "system", "content": self.query_prompt_template})
-        query_response_token_limit = 500
-
-        chat_completion: ChatCompletion = await self.openai_chat_client.chat.completions.create(
-            messages=query_messages,  # type: ignore
-            # Azure OpenAI takes the deployment name as the model name
+        specify_package_chat_completion: ChatCompletion = await self.openai_chat_client.chat.completions.create(
+            messages=specify_package_messages,
             model=self.chat_deployment if self.chat_deployment else self.chat_model,
-            temperature=0.0,  # Minimize creativity for search query generation
-            max_tokens=query_response_token_limit,  # Setting too low risks malformed JSON, too high risks performance
+            temperature=0.0,
+            max_tokens=specify_package_token_limit,
             n=1,
-            tools=build_search_function(),
-            tool_choice="auto",
+            tools=build_specify_package_function()
         )
 
-        query_text, filters = extract_search_arguments(chat_completion)
+        specify_package_filters = handle_specify_package_function_call(specify_package_chat_completion)
 
-        # Retrieve relevant items from the database with the GPT optimized query
-        results = await self.searcher.search_and_embed(
-            query_text,
-            top=top,
-            enable_vector_search=vector_search,
-            enable_text_search=text_search,
-            filters=filters,
-        )
-        
-        # Check if the url_filter is used to determine the context to send to the LLM
-        if any(f['column'] == 'url' and f['value'] != '' for f in filters):
-            sources_content = [f"[{(item.id)}]:{item.to_str_for_narrow_rag()}\n\n" for item in results] # all details
+        if specify_package_filters:
+            # Pass specify_package_filters to simple SQL search function
+            results = await self.searcher.simple_sql_search(filters=specify_package_filters)
+            sources_content = [f"[{(item.id)}]:{item.to_str_for_narrow_rag()}\n\n" for item in results]
+
+            thought_steps = [
+                ThoughtStep(
+                    title="Prompt to specify package",
+                    description=[str(message) for message in specify_package_messages],
+                    props={"model": self.chat_model, "deployment": self.chat_deployment} if self.chat_deployment else {"model": self.chat_model}
+                ),
+                ThoughtStep(
+                    title="Specified package filters",
+                    description=specify_package_filters,
+                    props={}
+                ),
+                ThoughtStep(
+                    title="SQL search results",
+                    description=[result.to_dict() for result in results],
+                    props={}
+                )
+            ]
         else:
-            sources_content = [f"[{(item.id)}]:{item.to_str_for_broad_rag()}\n\n" for item in results] # important details
-        
+            # Generate an optimized keyword search query based on the chat history and the last question
+            query_messages = copy.deepcopy(messages)
+            query_messages.insert(0, {"role": "system", "content": self.query_prompt_template})
+            query_response_token_limit = 500
+
+            query_chat_completion: ChatCompletion = await self.openai_chat_client.chat.completions.create(
+                messages=query_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=query_response_token_limit,
+                n=1,
+                tools=build_hybrid_search_function(),
+                tool_choice="auto",
+            )
+
+            query_text, filters = extract_search_arguments(query_chat_completion)
+
+            # Retrieve relevant items from the database with the GPT optimized query
+            results = await self.searcher.search_and_embed(
+                query_text,
+                top=top,
+                enable_vector_search=vector_search,
+                enable_text_search=text_search,
+                filters=filters,
+            )
+
+            sources_content = [f"[{(item.id)}]:{item.to_str_for_broad_rag()}\n\n" for item in results]
+
+            thought_steps = [
+                ThoughtStep(
+                    title="Prompt to generate search arguments",
+                    description=[str(message) for message in query_messages],
+                    props={"model": self.chat_model, "deployment": self.chat_deployment} if self.chat_deployment else {"model": self.chat_model}
+                ),
+                ThoughtStep(
+                    title="Generated search arguments",
+                    description=query_text,
+                    props={"filters": filters}
+                ),
+                ThoughtStep(
+                    title="Hybrid Search results",
+                    description=[result.to_dict() for result in results],
+                    props={
+                        "top": top,
+                        "vector_search": vector_search,
+                        "text_search": text_search
+                    }
+                )
+            ]
+
         content = "\n".join(sources_content)
 
         # Build messages for the final chat completion
@@ -89,7 +150,6 @@ class AdvancedRAGChat:
         response_token_limit = 1024
 
         chat_completion_response = await self.openai_chat_client.chat.completions.create(
-            # Azure OpenAI takes the deployment name as the model name
             model=self.chat_deployment if self.chat_deployment else self.chat_model,
             messages=messages,
             temperature=overrides.get("temperature", 0.3),
@@ -101,39 +161,6 @@ class AdvancedRAGChat:
 
         chat_resp["choices"][0]["context"] = {
             "data_points": {"text": sources_content},
-            "thoughts": [
-                ThoughtStep(
-                    title="Prompt to generate search arguments",
-                    description=[str(message) for message in query_messages],
-                    props=(
-                        {"model": self.chat_model, "deployment": self.chat_deployment}
-                        if self.chat_deployment
-                        else {"model": self.chat_model}
-                    ),
-                ),
-                ThoughtStep(
-                    title="Search using generated search arguments",
-                    description=query_text,
-                    props={
-                        "top": top,
-                        "vector_search": vector_search,
-                        "text_search": text_search,
-                        "filters": filters,
-                    },
-                ),
-                ThoughtStep(
-                    title="Search results",
-                    description=[result.to_dict() for result in results],
-                ),
-                ThoughtStep(
-                    title="Prompt to generate answer",
-                    description=[str(message) for message in messages],
-                    props=(
-                        {"model": self.chat_model, "deployment": self.chat_deployment}
-                        if self.chat_deployment
-                        else {"model": self.chat_model}
-                    ),
-                ),
-            ],
+            "thoughts": thought_steps
         }
         return chat_resp
