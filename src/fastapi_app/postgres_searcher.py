@@ -22,7 +22,7 @@ class PostgresSearcher:
         self.embed_deployment = embed_deployment
         self.embed_dimensions = embed_dimensions
 
-    def build_filter_clause(self, filters) -> tuple[str, str]:
+    def build_filter_clause(self, filters, use_or=False) -> tuple[str, str]:
         if filters is None:
             return "", ""
         filter_clauses = []
@@ -30,7 +30,7 @@ class PostgresSearcher:
             if isinstance(filter["value"], str):
                 filter["value"] = f"'{filter['value']}'"
             filter_clauses.append(f"{filter['column']} {filter['comparison_operator']} {filter['value']}")
-        filter_clause = " AND ".join(filter_clauses)
+        filter_clause = f" {'OR' if use_or else 'AND'} ".join(filter_clauses)
         if len(filter_clause) > 0:
             return f"WHERE {filter_clause}", f"AND {filter_clause}"
         return "", ""
@@ -290,11 +290,11 @@ class PostgresSearcher:
         """
         Search items by simple SQL query with filters.
         """
-        filter_clause_where, _ = self.build_filter_clause(filters)
+        filter_clause_where, _ = self.build_filter_clause(filters, use_or=True)
         sql = f"""
         SELECT id FROM packages
         {filter_clause_where}
-        LIMIT 1
+        LIMIT 2
         """
         
         async with self.async_session_maker() as session:
