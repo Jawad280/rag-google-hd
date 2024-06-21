@@ -294,7 +294,7 @@ class PostgresSearcher:
         sql = f"""
         SELECT id FROM packages
         {filter_clause_where}
-        LIMIT 2
+        LIMIT 10
         """
         
         async with self.async_session_maker() as session:
