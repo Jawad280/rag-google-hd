@@ -1,15 +1,13 @@
 import copy
+import logging
 import pathlib
 from collections.abc import AsyncGenerator
-from typing import (
-    Any,
-)
+from typing import Any
 
 from openai import AsyncOpenAI
-from openai.types.chat import (
-    ChatCompletion,
-)
+from openai.types.chat import ChatCompletion
 from openai_messages_token_helper import get_token_limit
+from tenacity import before_sleep_log, retry, stop_after_attempt, wait_random_exponential
 
 from .api_models import ThoughtStep
 from .postgres_searcher import PostgresSearcher
@@ -20,6 +18,9 @@ from .query_rewriter import (
     handle_specify_package_function_call,
 )
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AdvancedRAGChat:
     def __init__(
@@ -40,13 +41,17 @@ class AdvancedRAGChat:
         self.query_prompt_template = open(current_dir / "prompts/query.txt").read()
         self.answer_prompt_template = open(current_dir / "prompts/answer.txt").read()
 
+    @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6), before_sleep=before_sleep_log(logger, logging.WARNING))
+    async def openai_chat_completion(self, *args, **kwargs) -> ChatCompletion:
+        return await self.openai_chat_client.chat.completions.create(*args, **kwargs)
+
     async def hybrid_search(self, messages, top, vector_search, text_search):
         # Generate an optimized keyword search query based on the chat history and the last question
         query_messages = copy.deepcopy(messages)
         query_messages.insert(0, {"role": "system", "content": self.query_prompt_template})
         query_response_token_limit = 500
 
-        query_chat_completion: ChatCompletion = await self.openai_chat_client.chat.completions.create(
+        query_chat_completion: ChatCompletion = await self.openai_chat_completion(
             messages=query_messages,
             model=self.chat_deployment if self.chat_deployment else self.chat_model,
             temperature=0.0,
@@ -110,7 +115,7 @@ class AdvancedRAGChat:
         specify_package_messages.insert(0, {"role": "system", "content": self.specify_package_prompt_template})
         specify_package_token_limit = 300
 
-        specify_package_chat_completion: ChatCompletion = await self.openai_chat_client.chat.completions.create(
+        specify_package_chat_completion: ChatCompletion = await self.openai_chat_completion(
             messages=specify_package_messages,
             model=self.chat_deployment if self.chat_deployment else self.chat_model,
             temperature=0.0,
@@ -155,9 +160,9 @@ class AdvancedRAGChat:
         # Build messages for the final chat completion
         messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
         messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + content})
-        response_token_limit = 1024
+        response_token_limit = 4096
 
-        chat_completion_response = await self.openai_chat_client.chat.completions.create(
+        chat_completion_response = await self.openai_chat_completion(
             model=self.chat_deployment if self.chat_deployment else self.chat_model,
             messages=messages,
             temperature=overrides.get("temperature", 0.3),
