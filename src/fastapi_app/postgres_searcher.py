@@ -311,3 +311,25 @@ class PostgresSearcher:
                 item = await session.execute(select(Item).where(Item.id == item_id))
                 items.append(item.scalar())
             return items
+        
+    
+    async def get_product_cards_info(self, urls: list[str]) -> list[dict]:
+        """
+        Fetch detailed information about items using their URLs as identifiers.
+        """
+        sql = """
+        SELECT package_name, package_picture, url, price FROM packages WHERE url = ANY(:urls)
+        """
+        
+        async with self.async_session_maker() as session:
+            results = (
+                await session.execute(
+                    text(sql), {"urls": urls}
+                )
+            ).fetchall()
+
+            # Convert results to dictionaries
+            items = []
+            for result in results:
+                items.append(dict(result._mapping))
+            return items

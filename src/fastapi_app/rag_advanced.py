@@ -1,3 +1,4 @@
+import re
 import copy
 import logging
 import pathlib
@@ -97,6 +98,9 @@ class AdvancedRAGChat:
         ]
         return sources_content, thought_steps
 
+    async def get_product_cards_details(self, urls: list[str]) -> list[dict]:
+        return await self.searcher.get_product_cards_info(urls)
+
     async def run(
         self, messages: list[dict], overrides: dict[str, Any] = {}
     ) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
@@ -172,8 +176,22 @@ class AdvancedRAGChat:
         )
         chat_resp = chat_completion_response.model_dump()
 
+        chat_resp_content = chat_resp["choices"][0]["message"]["content"]
+        package_urls = re.findall(r'https:\/\/hdmall\.co\.th\/[\w.,@?^=%&:\/~+#-]+', chat_resp_content)
+        
+        if package_urls:
+            product_cards_details = await self.get_product_cards_details(package_urls)
+        else:
+            product_cards_details = []
+
         chat_resp["choices"][0]["context"] = {
             "data_points": {"text": sources_content},
-            "thoughts": thought_steps
+            "thoughts": thought_steps + [
+                ThoughtStep(
+                    title="Additional details for mentioned URLs",
+                    description=product_cards_details,
+                    props={}
+                )
+            ]
         }
         return chat_resp
