@@ -188,7 +188,7 @@ class AdvancedRAGChat:
             "data_points": {"text": sources_content},
             "thoughts": thought_steps + [
                 ThoughtStep(
-                    title="Additional details for mentioned URLs",
+                    title="Product Cards Details",
                     description=product_cards_details,
                     props={}
                 )
