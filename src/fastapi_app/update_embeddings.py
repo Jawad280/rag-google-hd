@@ -22,12 +22,11 @@ EMBEDDING_FIELDS = [
     'package_name', 'package_picture', 'url', 'installment_month', 'installment_limit',
     'price_to_reserve_for_this_package', 'shop_name', 'category', 'category_tags',
     'preview_1_10', 'selling_point', 'meta_keywords', 'brand', 'min_max_age',
-    'locations_time_open_close_how_to_transport_parking_google_maps', 'meta_description',
-    'price_details', 'package_details', 'important_info', 'payment_booking_info',
-    'general_info', 'early_signs_for_diagnosis', 'how_to_diagnose', 'hdcare_summary',
-    'common_question', 'know_this_disease', 'courses_of_action', 'signals_to_proceed_surgery',
-    'get_to_know_this_surgery', 'comparisons', 'getting_ready', 'recovery',
-    'side_effects', 'review_4_5_stars', 'brand_option_in_thai_name', 'faq'
+    'locations', 'meta_description','price_details', 'package_details', 'important_info',
+    'payment_booking_info', 'general_info', 'early_signs_for_diagnosis', 'how_to_diagnose',
+    'hdcare_summary', 'common_question', 'know_this_disease', 'courses_of_action',
+    'signals_to_proceed_surgery', 'get_to_know_this_surgery', 'comparisons', 'getting_ready',
+    'recovery', 'side_effects', 'review_4_5_stars', 'brand_option_in_thai_name', 'faq'
 ]
 
 def get_to_str_method(item, field):
