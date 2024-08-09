@@ -54,6 +54,7 @@ class Package(Base):
     url: {self.url}
     locations: {self.locations}
     price: {self.price}
+    category: {self.category}
     """
 
     def to_str_for_narrow_rag(self):

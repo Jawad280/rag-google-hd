@@ -1,0 +1,1 @@
+Provide a summary or what you have understood/interpreted from the user's input. If the input has any images, do describe what you understood from the image together with other prompts the user may or may not have provided. Contextualize and summarize the prompt. Make it concise.

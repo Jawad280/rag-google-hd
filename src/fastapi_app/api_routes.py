@@ -39,7 +39,8 @@ async def chat_handler(chat_request: ChatRequest):
     chat_resp_content = chat_resp["choices"][0]["message"]["content"]
 
     # Update URLs with UTM parameters
-    url_pattern = r"https:\/\/hdmall\.co\.th\/[\w.,@?^=%&:\/~+#-]+"
+    # url_pattern = r"https:\/\/hdmall\.co\.th\/[\w.,@?^=%&:\/~+#-]+"
+    url_pattern = r"https:\/\/hdmall\.co\.th\/[^\s\"\']+"
     chat_resp_content = update_urls_with_utm(chat_resp_content, url_pattern)
 
     # Update the chat response with the modified content

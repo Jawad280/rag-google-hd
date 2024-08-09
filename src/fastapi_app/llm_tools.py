@@ -26,12 +26,14 @@ def build_google_search_function() -> list[ChatCompletionToolParam]:
                                 "type": "string",
                             },
                             "description": """
+                            Translate all inputs to thai.
                             A list of nearby districts(Amphoes) from what the user provides.
                             For example, if the user says `รังสิต`, the locations should be 
-                            [`ธัญบุรี`, `เมืองปทุมธานี`, `คลองหลวง`, `ลำลูกกา`].
+                            [`รังสิต`, `ธัญบุรี`, `เมืองปทุมธานี`, `คลองหลวง`, `ลำลูกกา`]. The location the user provided should
+                            be the first in the response and followed by areas surrounding it.
                             Only parse this property if the user specifies an area, not a specific place.
-                            """
-                        }
+                            """,
+                        },
                     },
                     "required": ["search_query"],
                 },
@@ -39,11 +41,11 @@ def build_google_search_function() -> list[ChatCompletionToolParam]:
         }
     ]
 
+
 def extract_search_arguments(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
     search_query = None
 
-    
     if response_message.tool_calls:
         for tool in response_message.tool_calls:
             if tool.type != "function":
@@ -53,7 +55,7 @@ def extract_search_arguments(chat_completion: ChatCompletion):
                 arg = json.loads(function.arguments)
                 search_query = arg.get("search_query")
                 locations = arg.get("locations", [])
-        
+
     return search_query, locations
 
 
@@ -76,7 +78,7 @@ def build_specify_package_function() -> list[ChatCompletionToolParam]:
                             The exact URL of the package from past messages,
                             e.g. 'https://hdmall.co.th/dental-clinics/xray-for-orthodontics-1-csdc'
                             If it includes any UTM parameters, please remove them.
-                            """
+                            """,
                         },
                         "package_name": {
                             "type": "string",
@@ -84,14 +86,15 @@ def build_specify_package_function() -> list[ChatCompletionToolParam]:
                             The exact package name from past messages,
                             always contains the package name and the hospital name,
                             e.g. 'เอกซเรย์สำหรับการจัดฟัน ที่ CSDC'
-                            """
-                        }
+                            """,
+                        },
                     },
                     "required": [],
                 },
             },
         }
     ]
+
 
 def handle_specify_package_function_call(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
@@ -120,6 +123,7 @@ def handle_specify_package_function_call(chat_completion: ChatCompletion):
                     )
     return filters
 
+
 def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
     return [
         {
@@ -139,6 +143,34 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
             },
         }
     ]
+
+
+def build_clear_history_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "clear_history",
+                "description": """
+                This function is used to clear all the past chat history between the user and the chatbot. 
+                This will be handled in the middleware. To trigger this in the middleware, you simply have
+                to return a string 'clear_history'. When the user mentions anything about clearing the chat history,
+                this function must be activated.
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
+def is_clear_history(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "clear_history":
+                return True
+    return False
+
 
 def is_handover_to_cx(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message

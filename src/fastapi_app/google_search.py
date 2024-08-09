@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 # Load the environment variables
 load_dotenv()
 
+
 def google_search_function(search_query):
     # Replace with your actual API key
     api_key = os.environ["GOOGLE_SEARCH_API_KEY"]

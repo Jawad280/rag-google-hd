@@ -7,8 +7,9 @@ def update_urls_with_utm(content: str, pattern: str, utm_source: str = "ai-chat"
 
     for old_url, new_url in zip(urls, updated_urls):
         content = content.replace(old_url, new_url)
-    
+
     return content
+
 
 def add_utm_param(url: str, utm_source: str = "ai-chat") -> str:
     if "?" in url:

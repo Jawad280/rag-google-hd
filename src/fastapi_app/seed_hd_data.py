@@ -138,7 +138,7 @@ async def main():
     else:
         engine = await create_postgres_engine_from_args(args)
 
-    table_name = input("Insert table_name: ") # e.g. packages_all, packages_all_staging
+    table_name = input("Insert table_name:")  # e.g. packages_all, packages_all_staging
 
     await seed_data(engine, table_name)
     await engine.dispose()
