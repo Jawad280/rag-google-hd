@@ -130,8 +130,7 @@ class AdvancedRAGChat:
         specify_package_resp = specify_package_chat_completion.model_dump()
 
         if is_clear_history(specify_package_chat_completion):
-            specify_package_resp["choices"][0]["message"]["content"] = "CLEAR_HISTORY"
-            print("CLEARING CHAT HISTORY.....")
+            specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_CLEAR_HISTORY"
             return specify_package_resp
 
         if is_handover_to_cx(specify_package_chat_completion):
