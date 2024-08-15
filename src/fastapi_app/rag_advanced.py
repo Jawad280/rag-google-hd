@@ -186,7 +186,7 @@ class AdvancedRAGChat:
         messages[-1]["content"].append(
             {
                 "type": "text",
-                "text": f"\n\nPlease add this url at the end of your response: {', '.join(filter_url)}",
+                "text": f"\n\nPlease add this url at the end of your response: {filter_url}",
             }
         )
 
