@@ -66,8 +66,10 @@ def build_specify_package_function() -> list[ChatCompletionToolParam]:
             "function": {
                 "name": "specify_package",
                 "description": """
-                Specify the exact URL or package name from past messages if they are relevant to the most recent user's message.
-                This tool is intended to find specific packages previously mentioned and should not be used for general inquiries or price-based requests.
+                Specify the exact URL or package name from past messages if they are relevant to the most recent user's 
+                message.
+                This tool is intended to find specific packages previously mentioned and should not be used for general 
+                inquiries or price-based requests.
                 """,
                 "parameters": {
                     "type": "object",
@@ -132,9 +134,10 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 "name": "handover_to_cx",
                 "description": """
                 This function is used to seamlessly transfer the current conversation to a live
-                customer support agent when the user's message indicates a strong intent to buy a
+                customer support agent when the user's message indicates a strong intent to buy/purchase a
                 particular package or service, or mentions booking, cancellation, scheduling,
-                or rescheduling, or other post-purchase intents. Upon invocation,
+                or rescheduling, or other post-purchase intents. If the customer is merely interested in a package,
+                do not call this function yet. Upon invocation,
                 this function will notify the customer support team to take over the conversation,
                 ensuring that the user's needs are promptly and accurately addressed by a human representative.
                 Don't call this function if the user wants to talk to a pharmacist
