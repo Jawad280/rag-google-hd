@@ -75,19 +75,35 @@ class AdvancedRAGChat:
         locations = [f'"{location}"' for location in locations] if locations else []
 
         query_text = f"{search_query} {' OR '.join(locations)}" if locations else search_query
+        packages, is_package_found = await self.searcher.google_search(query_text, top=3)
 
-        results = await self.searcher.google_search(query_text, top=3)
-        first_result = results[0]
-        sources_content = [f"[{(package.url)}]:{package.to_str_for_broad_rag()}\n\n" for package in results]
+        if is_package_found:
+            first_result = packages[0]
+            sources_content = [f"[{(package.url)}]:{package.to_str_for_broad_rag()}\n\n" for package in packages]
 
-        filter_url = f'https://hdmall.co.th/search?q={first_result.category.replace(" ", "+")}'
+            filter_url = f'https://hdmall.co.th/search?q={first_result.category.replace(" ", "+")}'
 
-        thought_steps = [
-            ThoughtStep(title="Prompt to generate search arguments", description=messages, props={}),
-            ThoughtStep(title="Google Search query", description=query_text, props={}),
-            ThoughtStep(title="Google Search results", description=[result.to_dict() for result in results], props={}),
-            ThoughtStep(title="Url to suggest for the filter search", description=filter_url, props={}),
-        ]
+            thought_steps = [
+                ThoughtStep(title="Prompt to generate search arguments", description=messages, props={}),
+                ThoughtStep(title="Google Search query", description=query_text, props={}),
+                ThoughtStep(
+                    title="Google Search results", description=[result.to_dict() for result in packages], props={}
+                ),
+                ThoughtStep(title="Url to suggest for the filter search", description=filter_url, props={}),
+            ]
+        else:
+            sources_content = []
+            if packages:
+                filter_url = packages[0].rpartition("/")[0]
+            else:
+                filter_url = "https://hdmall.co.th"
+            thought_steps = [
+                ThoughtStep(title="Prompt to generate search arguments", description=messages, props={}),
+                ThoughtStep(title="Google Search query", description=query_text, props={}),
+                ThoughtStep(title="Google Search results", description=[result for result in packages], props={}),
+                ThoughtStep(title="Url to suggest for the filter search", description=filter_url, props={}),
+            ]
+
         return sources_content, thought_steps, filter_url
 
     async def run(self, messages: list[dict]) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:

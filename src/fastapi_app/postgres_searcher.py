@@ -59,4 +59,10 @@ class PostgresSearcher:
                 package = package.scalar()
                 if package:
                     items.append(package)
-            return items[:top]
+            if items:
+                is_package_found = True
+                packages = items[:top]
+            else:
+                is_package_found = False
+                packages = results[:top]
+            return packages, is_package_found
