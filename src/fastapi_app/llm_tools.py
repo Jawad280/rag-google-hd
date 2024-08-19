@@ -134,13 +134,48 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 "name": "handover_to_cx",
                 "description": """
                 This function is used to seamlessly transfer the current conversation to a live
-                customer support agent when the user's message indicates a strong intent to buy/purchase a
-                particular package or service, or mentions booking, cancellation, scheduling,
-                or rescheduling, or other post-purchase intents. If the customer is merely interested in a package,
-                do not call this function yet. Upon invocation,
-                this function will notify the customer support team to take over the conversation,
-                ensuring that the user's needs are promptly and accurately addressed by a human representative.
-                Don't call this function if the user wants to talk to a pharmacist
+                customer support agent when the user's message indicates the following :
+                1. Any mentions about payment or wanting to make payment
+                2. General HDmall service enquiry
+                For 2, it is crucial that you enquire and extract as much information possible that 
+                the user is looking for. If the user enquiry is too general or vague eg: 
+                'I have some questions about your services', probe further and do not
+                call this function yet. If the user enquiry is specific/lower funnel enough, trigger this function
+                as the enquiry scope is narrow.
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
+def build_handover_to_bk_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "handover_to_bk",
+                "description": """
+                This function is used to seamlessly transfer the current conversation to the booking team
+                when the user's message indicates strongly any mention about reservations or post-payment 
+                enquiry for packages.
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
+def build_app_link_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "app_link",
+                "description": """
+                This function is used to provide a download link for our app : https://www.example.com. You trigger 
+                this function when the user has a strong intent to enquire about pharmacy or medicine related queries.
+                All you have to do is simply return the download link in the response.
                 """,
                 "parameters": {},
             },
@@ -180,5 +215,23 @@ def is_handover_to_cx(chat_completion: ChatCompletion):
     if response_message.tool_calls:
         for tool in response_message.tool_calls:
             if tool.type == "function" and tool.function.name == "handover_to_cx":
+                return True
+    return False
+
+
+def is_handover_to_bk(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "handover_to_bk":
+                return True
+    return False
+
+
+def is_app_link(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "app_link":
                 return True
     return False

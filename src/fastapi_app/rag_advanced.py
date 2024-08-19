@@ -11,13 +11,17 @@ from tenacity import before_sleep_log, retry, stop_after_attempt, wait_random_ex
 
 from .api_models import ThoughtStep
 from .llm_tools import (
+    build_app_link_function,
     build_clear_history_function,
     build_google_search_function,
+    build_handover_to_bk_function,
     build_handover_to_cx_function,
     build_specify_package_function,
     extract_search_arguments,
     handle_specify_package_function_call,
+    is_app_link,
     is_clear_history,
+    is_handover_to_bk,
     is_handover_to_cx,
 )
 from .postgres_searcher import PostgresSearcher
@@ -84,7 +88,7 @@ class AdvancedRAGChat:
             filter_url = f'https://hdmall.co.th/search?q={first_result.category.replace(" ", "+")}'
 
             thought_steps = [
-                ThoughtStep(title="Prompt to generate search arguments", description=messages, props={}),
+                ThoughtStep(title="Prompt to generate search arguments", description=query_messages, props={}),
                 ThoughtStep(title="Google Search query", description=query_text, props={}),
                 ThoughtStep(
                     title="Google Search results", description=[result.to_dict() for result in packages], props={}
@@ -98,7 +102,7 @@ class AdvancedRAGChat:
             else:
                 filter_url = "https://hdmall.co.th"
             thought_steps = [
-                ThoughtStep(title="Prompt to generate search arguments", description=messages, props={}),
+                ThoughtStep(title="Prompt to generate search arguments", description=query_messages, props={}),
                 ThoughtStep(title="Google Search query", description=query_text, props={}),
                 ThoughtStep(title="Google Search results", description=[result for result in packages], props={}),
                 ThoughtStep(title="Url to suggest for the filter search", description=filter_url, props={}),
@@ -140,10 +144,15 @@ class AdvancedRAGChat:
             temperature=0.0,
             max_tokens=specify_package_token_limit,
             n=1,
-            tools=build_handover_to_cx_function() + build_specify_package_function() + build_clear_history_function(),
+            tools=build_handover_to_cx_function()
+            + build_handover_to_bk_function()
+            + build_specify_package_function()
+            + build_clear_history_function()
+            + build_app_link_function(),
         )
 
         specify_package_resp = specify_package_chat_completion.model_dump()
+        filter_url = None
 
         if is_clear_history(specify_package_chat_completion):
             specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_CLEAR_HISTORY"
@@ -153,11 +162,14 @@ class AdvancedRAGChat:
             specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_CX"
             return specify_package_resp
 
+        if is_handover_to_bk(specify_package_chat_completion):
+            specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_BK"
+            return specify_package_resp
+
         specify_package_filters = handle_specify_package_function_call(specify_package_chat_completion)
 
         if specify_package_filters:  # Simple SQL search
             results = await self.searcher.simple_sql_search(filters=specify_package_filters)
-            filter_url = None
             if results:
                 filter_url = [
                     f'https://hdmall.co.th/search?q={package.category.replace(" ", "+")}' for package in results
@@ -188,6 +200,9 @@ class AdvancedRAGChat:
                 # No results found with SQL search, fall back to the google search
                 sources_content, additional_thought_steps, filter_url = await self.google_search(messages)
                 thought_steps.extend(additional_thought_steps)
+        elif is_app_link(specify_package_chat_completion):
+            sources_content = []
+            thought_steps.extend([ThoughtStep(title="Pharmacy/Medicine related query", description="", props={})])
         else:  # Google search
             sources_content, additional_thought_steps, filter_url = await self.google_search(messages)
             thought_steps.extend(additional_thought_steps)
@@ -199,12 +214,13 @@ class AdvancedRAGChat:
         messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + content})
 
         # Append the URL to the final message
-        messages[-1]["content"].append(
-            {
-                "type": "text",
-                "text": f"\n\nPlease add this url at the end of your response: {filter_url}",
-            }
-        )
+        if filter_url:
+            messages[-1]["content"].append(
+                {
+                    "type": "text",
+                    "text": f"\n\nPlease add this url at the end of your response: {filter_url}",
+                }
+            )
 
         response_token_limit = 4096
 

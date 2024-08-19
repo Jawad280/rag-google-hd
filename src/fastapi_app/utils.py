@@ -12,6 +12,7 @@ def update_urls_with_utm(content: str, pattern: str, utm_source: str = "ai-chat"
 
 
 def add_utm_param(url: str, utm_source: str = "ai-chat") -> str:
+    url = url.rstrip(".")
     if "?" in url:
         return f"{url}&utm_source={utm_source}"
     else:
