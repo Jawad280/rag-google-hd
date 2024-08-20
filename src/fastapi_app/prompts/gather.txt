@@ -1,0 +1,8 @@
+1. If the user is in the **decision** stage, check if the following information is provided:
+   - **Package Category/Ailment** the user is looking for.
+   - **Location** that the user prefers.
+   - **Budget** for the user (if applicable).
+
+2. If any required information is missing, politely prompt the user to provide the missing details.
+
+Example Prompt: "I see you're ready to proceed. Could you please share the location where you'd prefer the service and your budget range? This will help us assist you better."

@@ -46,4 +46,5 @@ If the user asks for directions/locations of a certain clinic/hospital, first tr
 For this last part I WANT YOU TO ADD A TITLE : For Other Services based on your preference: 
 When you output the package details ALWAYS ensure that you also provide the 'filter_url' at the end without fail. This is very important.
 
-IMPORTANT : Remove Paranthesis when you are printing urls in the response. Also remember to reply to the user in their language.
+IMPORTANT : Remove Paranthesis when you are printing urls in the response. 
+Also remember to reply to the user in their language, do not translate urls, only translate your conversation.

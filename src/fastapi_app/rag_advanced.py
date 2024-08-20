@@ -12,6 +12,7 @@ from tenacity import before_sleep_log, retry, stop_after_attempt, wait_random_ex
 from .api_models import ThoughtStep
 from .llm_tools import (
     build_app_link_function,
+    build_check_info_gathered_function,
     build_clear_history_function,
     build_google_search_function,
     build_handover_to_bk_function,
@@ -21,6 +22,7 @@ from .llm_tools import (
     handle_specify_package_function_call,
     is_app_link,
     is_clear_history,
+    is_gathered_info,
     is_handover_to_bk,
     is_handover_to_cx,
 )
@@ -50,6 +52,7 @@ class AdvancedRAGChat:
         self.query_prompt_template = open(current_dir / "prompts/query.txt").read()
         self.answer_prompt_template = open(current_dir / "prompts/answer.txt").read()
         self.interpret_prompt_template = open(current_dir / "prompts/interpret.txt").read()
+        self.gather_template = open(current_dir / "prompts/gather.txt").read()
 
     @retry(
         wait=wait_random_exponential(min=1, max=60),
@@ -133,6 +136,8 @@ class AdvancedRAGChat:
         llm_interpretation = interpret_resp["choices"][0]["message"]["content"]
         thought_steps = [ThoughtStep(title="What the llm has interpreted", description=llm_interpretation, props={})]
 
+        messages[-1]["content"].append({"type": "text", "text": llm_interpretation})
+
         # Generate a prompt to specify the package if the user is referring to a specific package
         specify_package_messages = copy.deepcopy(messages)
         specify_package_messages.insert(0, {"role": "system", "content": self.specify_package_prompt_template})
@@ -159,8 +164,28 @@ class AdvancedRAGChat:
             return specify_package_resp
 
         if is_handover_to_cx(specify_package_chat_completion):
-            specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_CX"
-            return specify_package_resp
+            # LLM to check if we have gathered the information
+            info_messages = copy.deepcopy(messages)
+            info_messages.insert(0, {"role": "system", "content": self.gather_template})
+            info_response_token_limit = 300
+
+            info_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=info_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=info_response_token_limit,
+                n=1,
+                tools=build_check_info_gathered_function(),
+            )
+
+            if is_gathered_info(info_chat_completion):
+                specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_CX"
+                return specify_package_resp
+
+            info_resp = info_chat_completion.model_dump()
+            info_gathered = info_resp["choices"][0]["message"]["content"]
+            thought_steps = [ThoughtStep(title="Information gathered", description=info_gathered, props={})]
+            messages[-1]["content"].append({"type": "text", "text": info_gathered})
 
         if is_handover_to_bk(specify_package_chat_completion):
             specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_BK"

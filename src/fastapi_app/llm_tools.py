@@ -134,14 +134,10 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 "name": "handover_to_cx",
                 "description": """
                 This function is used to seamlessly transfer the current conversation to a live
-                customer support agent when the user's message indicates the following :
-                1. Any mentions about payment or wanting to make payment
-                2. General HDmall service enquiry
-                For 2, it is crucial that you enquire and extract as much information possible that 
-                the user is looking for. If the user enquiry is too general or vague eg: 
-                'I have some questions about your services', probe further and do not
-                call this function yet. If the user enquiry is specific/lower funnel enough, trigger this function
-                as the enquiry scope is narrow.
+                customer support agent (human) when the user's message indicates the following :
+                1. Any mentions about payment or wanting to make payment. 
+                2. Specific HDMall service queries that you are not able to provide further information about.
+                3. Based on the interpret llm, if the user is in a clear decision stage and wants more information.
                 """,
                 "parameters": {},
             },
@@ -199,6 +195,36 @@ def build_clear_history_function() -> list[ChatCompletionToolParam]:
             },
         }
     ]
+
+
+def build_check_info_gathered_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "check_info_gathered",
+                "description": """
+                This function is also triggered : 
+                - IF there is any mention about payment or wanting to pay.
+                OR
+                - IF at least 2/3 of the following information has been collected:
+                    1. Product/Package Category of user
+                    2. Prefered location
+                    3. Budget (if any)
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
+def is_gathered_info(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "check_info_gathered":
+                return True
+    return False
 
 
 def is_clear_history(chat_completion: ChatCompletion):
