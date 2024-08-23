@@ -134,7 +134,7 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 "name": "handover_to_cx",
                 "description": """
                 This function is used to seamlessly transfer the current conversation to a live
-                customer support agent (human) when the user's message indicates the following :
+                customer support agent/customer service/human when the user's message indicates the following :
                 1. Any mentions about payment or wanting to make payment. 
                 2. Specific HDMall service queries that you are not able to provide further information about.
                 3. Based on the interpret llm, if the user is in a clear decision stage and wants more information.
