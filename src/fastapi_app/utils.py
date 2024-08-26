@@ -17,3 +17,10 @@ def add_utm_param(url: str, utm_source: str = "ai-chat") -> str:
         return f"{url}&utm_source={utm_source}"
     else:
         return f"{url}?utm_source={utm_source}"
+
+
+def remove_markdown_elements(content: str) -> str:
+    cleaned_content = re.sub(r"\*\*(.*?)\*\*", r"\1", content)
+    cleaned_content = re.sub(r"\*(.*?)\*", r"\1", cleaned_content)
+
+    return cleaned_content
