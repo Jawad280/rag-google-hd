@@ -1,4 +1,4 @@
-1. If the user is in the **decision** stage, check if the following information is provided:
+1. If the user is in the **final decision** stage, check if the following information is provided:
    - **Package Category/Ailment** the user is looking for.
    - **Location** that the user prefers.
    - **Budget** for the user (if applicable).

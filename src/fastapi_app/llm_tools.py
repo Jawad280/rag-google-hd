@@ -137,8 +137,12 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 customer support agent/human/someone when the user's message indicates the following :
                 1. Any mentions about payment or wanting to make payment. 
                 2. Specific HDMall service queries that you are not able to provide further information about.
-                3. Based on the interpret llm, if the user is in a clear decision stage and wants more information.
+                3. Based on the interpret llm, if the user is in a clear decision stage.
                 4. Wants to talk to someone
+                Caution : There is a nuance when the user says "I want...". Based on the chat history,
+                if the user says they want the package then call this function. If they are simply curious and 
+                say something like "I want/looking for a health checkup/treatment", do not call this as its still too 
+                general and you can still gather more information.
                 """,
                 "parameters": {},
             },

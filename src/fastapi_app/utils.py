@@ -13,6 +13,8 @@ def update_urls_with_utm(content: str, pattern: str, utm_source: str = "ai-chat"
 
 def add_utm_param(url: str, utm_source: str = "ai-chat") -> str:
     url = url.rstrip(".")
+    if "utm_source=" in url:
+        return url
     if "?" in url:
         return f"{url}&utm_source={utm_source}"
     else:
@@ -20,7 +22,19 @@ def add_utm_param(url: str, utm_source: str = "ai-chat") -> str:
 
 
 def remove_markdown_elements(content: str) -> str:
-    cleaned_content = re.sub(r"\*\*(.*?)\*\*", r"\1", content)
-    cleaned_content = re.sub(r"\*(.*?)\*", r"\1", cleaned_content)
+    # Remove code blocks (```...```)
+    cleaned_content = re.sub(r"```.*?```", "", content, flags=re.DOTALL)
 
-    return cleaned_content
+    # Remove inline code (`...`)
+    cleaned_content = re.sub(r"`([^`]*)`", r"\1", cleaned_content)
+
+    # Remove headers (e.g., # Header)
+    cleaned_content = re.sub(r"^\s*#+\s*(.*)", r"\1", cleaned_content, flags=re.MULTILINE)
+
+    # Remove bold and italic (**text**, *text*, __text__, _text_)
+    cleaned_content = re.sub(r"\*\*(.*?)\*\*", r"\1", cleaned_content)
+    cleaned_content = re.sub(r"\*(.*?)\*", r"\1", cleaned_content)
+    cleaned_content = re.sub(r"__(.*?)__", r"\1", cleaned_content)
+    cleaned_content = re.sub(r"_(.*?)_", r"\1", cleaned_content)
+
+    return cleaned_content.strip()
