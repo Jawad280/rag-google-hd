@@ -7,7 +7,7 @@ from fastapi_app.globals import global_storage
 from fastapi_app.postgres_models import Package
 from fastapi_app.postgres_searcher import PostgresSearcher
 from fastapi_app.rag_advanced import AdvancedRAGChat
-from fastapi_app.utils import update_urls_with_utm
+from fastapi_app.utils import remove_markdown_elements, update_urls_with_utm
 
 router = fastapi.APIRouter()
 
@@ -44,7 +44,7 @@ async def chat_handler(chat_request: ChatRequest):
     chat_resp_content = update_urls_with_utm(chat_resp_content, url_pattern)
 
     # Update content without markdown elements
-    # chat_resp_content = remove_markdown_elements(chat_resp_content)
+    chat_resp_content = remove_markdown_elements(chat_resp_content)
 
     # Update the chat response with the modified content
     chat_resp["choices"][0]["message"]["content"] = chat_resp_content

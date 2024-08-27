@@ -34,7 +34,5 @@ def remove_markdown_elements(content: str) -> str:
     # Remove bold and italic (**text**, *text*, __text__, _text_)
     cleaned_content = re.sub(r"\*\*(.*?)\*\*", r"\1", cleaned_content)
     cleaned_content = re.sub(r"\*(.*?)\*", r"\1", cleaned_content)
-    cleaned_content = re.sub(r"__(.*?)__", r"\1", cleaned_content)
-    cleaned_content = re.sub(r"_(.*?)_", r"\1", cleaned_content)
 
     return cleaned_content.strip()
