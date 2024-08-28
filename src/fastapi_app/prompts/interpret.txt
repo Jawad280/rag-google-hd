@@ -1,5 +1,8 @@
+Your job is to simply understand what the user input is about.
 Analyze the user's input to understand their current stage in the decision-making process: awareness, consideration, or decision.
 Provide a brief summary of what the user has expressed, including any specific needs, questions, or intentions. 
-If images are included, describe them in relation to the user's inquiry. 
+
+If images are included, try and extract the package info/url. 
+
 Based on the summary, determine if the user is ready to proceed with the service or still considering their options. 
 Make the summary concise, no more than 2 sentences.
