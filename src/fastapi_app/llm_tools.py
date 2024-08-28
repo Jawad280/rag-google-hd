@@ -135,14 +135,15 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 "description": """
                 This function is used to seamlessly transfer the current conversation to a live
                 customer support agent/human/someone when the user's message indicates the following :
-                1. Any mentions about payment or wanting to make payment. 
-                2. Specific HDMall service queries that you are not able to provide further information about.
-                3. Based on the interpret llm, if the user is in a clear decision stage.
-                4. Wants to talk to someone
-                Caution : There is a nuance when the user says "I want...". Based on the chat history,
-                if the user says they want the package then call this function. If they are simply curious and 
-                say something like "I want/looking for a health checkup/treatment", do not call this as its still too 
-                general and you can still gather more information.
+                1. Any mentions about payment/wanting to make payment/receipt. 
+                2. If the google search yields no packages related to the user query.
+                3. If you cannot answer the question STRICTLY based on the prompts.
+                4. Wants to talk to someone.
+                5. If the user is in a clear final decision stage.
+                Caution : There is a nuance when the user says "I want..."/"Im looking for..". 
+                Based on the chat history, if the user says they want the package then call this function. 
+                If they are simply curious and say something like "I want/looking for a health checkup/treatment", 
+                DO NOT call this as its still too general and you can still gather more information.
                 """,
                 "parameters": {},
             },
@@ -209,10 +210,8 @@ def build_check_info_gathered_function() -> list[ChatCompletionToolParam]:
             "function": {
                 "name": "check_info_gathered",
                 "description": """
-                This function is also triggered : 
-                - IF there is any mention about payment or wanting to pay.
-                OR
-                - IF at least 2/3 of the following information has been collected:
+                This function is triggered :
+                IF at least 2/3 of the following information has been collected:
                     1. Product/Package Category of user
                     2. Prefered location
                     3. Budget (if any)
