@@ -66,8 +66,8 @@ def build_specify_package_function() -> list[ChatCompletionToolParam]:
             "function": {
                 "name": "specify_package",
                 "description": """
-                Specify the exact URL or package name or brand(hospital name) from past messages if they are relevant to the most recent user's 
-                message.
+                Specify the exact URL or package name or brand(hospital name) from past messages if they are relevant 
+                to the most recent user's message.
                 This tool is intended to find specific packages previously mentioned and should not be used for general 
                 inquiries or price-based requests.
                 """,
