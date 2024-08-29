@@ -100,10 +100,7 @@ class AdvancedRAGChat:
             ]
         else:
             sources_content = []
-            if packages:
-                filter_url = packages[0].rpartition("/")[0]
-            else:
-                filter_url = "https://hdmall.co.th"
+            filter_url = "https://hdmall.co.th"
             thought_steps = [
                 ThoughtStep(title="Prompt to generate search arguments", description=query_messages, props={}),
                 ThoughtStep(title="Google Search query", description=query_text, props={}),
@@ -120,23 +117,23 @@ class AdvancedRAGChat:
                 message["content"] = [{"type": "text", "text": message["content"]}]
 
         # Generate LLM's interpretation of the user input
-        interpret_messages = copy.deepcopy(messages)
-        interpret_messages.insert(0, {"role": "system", "content": self.interpret_prompt_template})
-        interpret_response_token_limit = 300
+        # interpret_messages = copy.deepcopy(messages)
+        # interpret_messages.insert(0, {"role": "system", "content": self.interpret_prompt_template})
+        # interpret_response_token_limit = 300
 
-        interpret_chat_completion: ChatCompletion = await self.openai_chat_completion(
-            messages=interpret_messages,
-            model=self.chat_deployment if self.chat_deployment else self.chat_model,
-            temperature=0.0,
-            max_tokens=interpret_response_token_limit,
-            n=1,
-        )
+        # interpret_chat_completion: ChatCompletion = await self.openai_chat_completion(
+        #     messages=interpret_messages,
+        #     model=self.chat_deployment if self.chat_deployment else self.chat_model,
+        #     temperature=0.0,
+        #     max_tokens=interpret_response_token_limit,
+        #     n=1,
+        # )
 
-        interpret_resp = interpret_chat_completion.model_dump()
-        llm_interpretation = interpret_resp["choices"][0]["message"]["content"]
-        thought_steps = [ThoughtStep(title="What the llm has interpreted", description=llm_interpretation, props={})]
-
-        messages[-1]["content"].append({"type": "text", "text": llm_interpretation})
+        # interpret_resp = interpret_chat_completion.model_dump()
+        # llm_interpretation = interpret_resp["choices"][0]["message"]["content"]
+        # thought_steps = [ThoughtStep(title="What the llm has interpreted", description=llm_interpretation, props={})]
+        thought_steps = []
+        # messages[-1]["content"].append({"type": "text", "text": llm_interpretation})
 
         # Generate a prompt to specify the package if the user is referring to a specific package
         specify_package_messages = copy.deepcopy(messages)
@@ -222,6 +219,7 @@ class AdvancedRAGChat:
                     ]
                 )
             else:
+                print("Google search triggered as couldnt find any packages")
                 # No results found with SQL search, fall back to the google search
                 sources_content, additional_thought_steps, filter_url = await self.google_search(messages)
                 thought_steps.extend(additional_thought_steps)

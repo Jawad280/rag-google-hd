@@ -64,5 +64,5 @@ class PostgresSearcher:
                 packages = items[:top]
             else:
                 is_package_found = False
-                packages = results[:top]
+                packages = []
             return packages, is_package_found

@@ -18,7 +18,7 @@ def build_google_search_function() -> list[ChatCompletionToolParam]:
                     "properties": {
                         "search_query": {
                             "type": "string",
-                            "description": "Query string to use for full text search, e.g. 'ตรวจสุขภาพ'",
+                            "description": "Query string to use for full text search (can be empty)",
                         },
                         "locations": {
                             "type": "array",
@@ -35,7 +35,6 @@ def build_google_search_function() -> list[ChatCompletionToolParam]:
                             """,
                         },
                     },
-                    "required": ["search_query"],
                 },
             },
         }

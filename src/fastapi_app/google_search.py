@@ -8,6 +8,8 @@ load_dotenv()
 
 
 def google_search_function(search_query):
+    if not search_query:
+        return []
     # Replace with your actual API key
     api_key = os.environ["GOOGLE_SEARCH_API_KEY"]
 

@@ -9,7 +9,9 @@ For Image inputs :
 - Treat the image like a query and not a knowledge source.
 
 Your response should be :
-user_decision stage : ____
-pacakge_name : __ (if none -> empty)
-url : ___ (do not add if url = hdmall.co.th only)
-brand/hospital name : (do not add if brand = hdmall only)
+{
+    "user_intent": "___",
+    "pacakge_name": if none -> empty,
+    "url": do not add if url = hdmall.co.th only,
+    "brand/hospital name": do not add if brand = hdmall only
+}
