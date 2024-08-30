@@ -65,7 +65,7 @@ def build_specify_package_function() -> list[ChatCompletionToolParam]:
             "function": {
                 "name": "specify_package",
                 "description": """
-                Specify the exact URL or package name or brand(hospital name) from past messages if they are relevant 
+                Specify the exact URL or package name from past messages if they are relevant 
                 to the most recent user's message.
                 This tool is intended to find specific packages previously mentioned and should not be used for general 
                 inquiries or price-based requests.
@@ -89,13 +89,6 @@ def build_specify_package_function() -> list[ChatCompletionToolParam]:
                             e.g. 'เอกซเรย์สำหรับการจัดฟัน ที่ CSDC'
                             """,
                         },
-                        "brand": {
-                            "type": "string",
-                            "description": """
-                            The exact brand/hospital name from past messages.
-                            e.g. 'N Health (เอ็นเฮลท์)'
-                            """,
-                        },
                     },
                     "required": [],
                 },
@@ -113,7 +106,6 @@ def handle_specify_package_function_call(chat_completion: ChatCompletion):
                 args = json.loads(tool.function.arguments)
                 url = args.get("url")
                 package_name = args.get("package_name")
-                brand = args.get("brand")
                 if url:
                     filters.append(
                         {
@@ -128,14 +120,6 @@ def handle_specify_package_function_call(chat_completion: ChatCompletion):
                             "column": "package_name",
                             "comparison_operator": "ILIKE",
                             "value": f"%{package_name}%",
-                        }
-                    )
-                if brand:
-                    filters.append(
-                        {
-                            "column": "brand",
-                            "comparison_operator": "ILIKE",
-                            "value": f"%{brand}%",
                         }
                     )
     return filters
