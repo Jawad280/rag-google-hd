@@ -189,6 +189,38 @@ class AdvancedRAGChat:
             )
             messages[-1]["content"].append({"type": "text", "text": info_gathered})
 
+            # Build messages for the final chat completion
+            messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
+
+            response_token_limit = 4096
+
+            chat_completion_response = await self.openai_chat_completion(
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                messages=messages,
+                temperature=0,
+                max_tokens=response_token_limit,
+                n=1,
+                stream=False,
+            )
+            chat_resp = chat_completion_response.model_dump()
+
+            chat_resp["choices"][0]["context"] = {
+                "data_points": {"text": info_gathered},
+                "thoughts": thought_steps
+                + [
+                    ThoughtStep(
+                        title="Prompt to generate answer",
+                        description=[str(message) for message in messages],
+                        props=(
+                            {"model": self.chat_model, "deployment": self.chat_deployment}
+                            if self.chat_deployment
+                            else {"model": self.chat_model}
+                        ),
+                    ),
+                ],
+            }
+            return chat_resp
+
         if is_handover_to_bk(specify_package_chat_completion):
             specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_BK"
             return specify_package_resp
@@ -246,7 +278,9 @@ class AdvancedRAGChat:
             messages[-1]["content"].append(
                 {
                     "type": "text",
-                    "text": f"\n\nPlease add this url at the end of your response: {filter_url}",
+                    "text": f"""
+                            \n\nAdd this url at the end of your response (if url is related to the query):{filter_url}
+                        """,
                 }
             )
 
