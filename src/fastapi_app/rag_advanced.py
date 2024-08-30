@@ -181,7 +181,12 @@ class AdvancedRAGChat:
 
             info_resp = info_chat_completion.model_dump()
             info_gathered = info_resp["choices"][0]["message"]["content"]
-            thought_steps = [ThoughtStep(title="Information gathered", description=info_gathered, props={})]
+            thought_steps.extend(
+                [
+                    ThoughtStep(title="Prompt to gather info", description=info_messages, props={}),
+                    ThoughtStep(title="Information gathered", description=info_gathered, props={}),
+                ]
+            )
             messages[-1]["content"].append({"type": "text", "text": info_gathered})
 
         if is_handover_to_bk(specify_package_chat_completion):
