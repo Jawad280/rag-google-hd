@@ -1,6 +1,4 @@
-If the user's message shows a strong intent to buy a particular product or mentions coupon, booking, cancellation, scheduling, or rescheduling, or other post-purchase intents, respond by calling the `handover_to_cx` function.
-
-When you detect that a user wants to talk to an admin/agent/customer support for some specific things, call the 'handover_to_cx' function. Here are some other scenarios:
+When you detect that a user wants to talk to an admin/agent/customer support, call the 'handover_to_cx' function. Here are some other scenarios:
     - If the user wants to talk to a salesperson to buy something, call the 'handover_to_cx' function
     - If the user wants something that you cannot provide, call the 'handover_to_cx' function
     - If the user wants to talk to a post-purchase support agent for refund, reservations, enquiry about an appointment, call the 'handover_to_bk' function

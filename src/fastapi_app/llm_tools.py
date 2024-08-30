@@ -150,13 +150,10 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 "description": """
                 This function is used to seamlessly transfer the current conversation to a live
                 customer support agent/human/someone when the user's message indicates the following :
-                1. Any mentions about payment/wanting to make payment/receipt. 
-                2. If the google search yields no packages related to the user query.
-                3. If you cannot answer the question STRICTLY based on the prompts.
-                4. Wants to talk to someone.
-                5. If the user is in a clear final decision stage.
+                    1. If the user wants to talk to a salesperson to buy something, call the 'handover_to_cx' function
+                    2. If the user wants something that you cannot provide, call the 'handover_to_cx' function
                 Caution : There is a nuance when the user says "I want..."/"Im looking for..". 
-                Based on the chat history, if the user says they want the package then call this function. 
+                Based on the chat history, if the user says they want to purchase the package then call this function. 
                 If they are simply curious and say something like "I want/looking for a health checkup/treatment", 
                 DO NOT call this as its still too general and you can still gather more information.
                 """,
