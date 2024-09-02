@@ -82,6 +82,8 @@ class AdvancedRAGChat:
         locations = [f'"{location}"' for location in locations] if locations else []
 
         if locations:
+            # If locations are present in query -> results are likely to be more wider -> add exactTerm to
+            # ensure its still relevant
             query_text = f"{search_query} {' OR '.join(locations)}"
             query_text += " package"
             packages, is_package_found = await self.searcher.google_search(
