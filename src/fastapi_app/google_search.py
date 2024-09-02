@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def google_search_function(search_query):
+def google_search_function(search_query, exact_term):
     if not search_query:
         return []
     # Replace with your actual API key
@@ -17,7 +17,7 @@ def google_search_function(search_query):
     cx = os.environ["GOOGLE_SEARCH_ENGINE_ID"]
 
     # Construct the URL
-    url = f"https://www.googleapis.com/customsearch/v1?key={api_key}&cx={cx}&q={search_query}"
+    url = f"https://www.googleapis.com/customsearch/v1?key={api_key}&cx={cx}&q={search_query}&exactTerms={exact_term}"
 
     # Send the GET request
     response = requests.get(url)

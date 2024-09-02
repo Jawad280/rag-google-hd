@@ -47,11 +47,11 @@ class PostgresSearcher:
                 items.append(package.scalar())
             return items
 
-    async def google_search(self, query_text: str, top: int = 3) -> list[str]:
+    async def google_search(self, query_text: str, exact_term: str, top: int = 3) -> list[str]:
         """
         Search items by query text using Google search.
         """
-        results = google_search_function(query_text)
+        results = google_search_function(query_text, exact_term=exact_term)
         async with self.async_session_maker() as session:
             items = []
             for result in results:
