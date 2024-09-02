@@ -60,4 +60,6 @@ Last Note:
     - If the user agrees -> call handover_to_cx
     - else -> continue as per normal
 
+Try to end your responses with a question about the customer, on what else they might want or what they are looking for.
+
 THANK YOU !!
