@@ -82,6 +82,7 @@ class AdvancedRAGChat:
         locations = [f'"{location}"' for location in locations] if locations else []
 
         query_text = f"{search_query} {' OR '.join(locations)}" if locations else search_query
+        query_text += " package"
         packages, is_package_found = await self.searcher.google_search(query_text, top=3)
 
         if is_package_found:
