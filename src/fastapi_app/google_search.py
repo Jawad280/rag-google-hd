@@ -35,6 +35,11 @@ def google_search_function(search_query, exact_term=None):
             link = item.get("link")
             if link:
                 links.append(link)
+
+        if len(links) < 1 and exact_term:
+            # Exact term could not find results -> try again without
+            return google_search_function(search_query=search_query, exact_term=None)
+
         return links
     else:
         return {"error": "Google search failed"}

@@ -18,6 +18,7 @@ from .llm_tools import (
     build_handover_to_bk_function,
     build_handover_to_cx_function,
     build_specify_package_function,
+    extract_info_gathered,
     extract_search_arguments,
     handle_specify_package_function_call,
     is_app_link,
@@ -188,7 +189,15 @@ class AdvancedRAGChat:
             )
 
             if is_gathered_info(info_chat_completion):
-                specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_CX"
+                # We need to extract the package_name, location, budget
+                package_name, location, budget = extract_info_gathered(info_chat_completion)
+
+                # Send the following text
+                note_to_be_added = f"Package: {package_name} \nLocation: {location} \nBudget: {budget}"
+                specify_package_resp["choices"][0]["message"]["content"] = (
+                    f"QISCUS_INTEGRATION_TO_CX: {note_to_be_added}"
+                )
+                print(specify_package_resp["choices"][0]["message"]["content"])
                 return specify_package_resp
 
             info_resp = info_chat_completion.model_dump()
@@ -202,7 +211,7 @@ class AdvancedRAGChat:
             messages[-1]["content"].append({"type": "text", "text": info_gathered})
 
             # Build messages for the final chat completion
-            messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
+            messages.insert(0, {"role": "system", "content": self.gather_template})
 
             response_token_limit = 4096
 

@@ -147,6 +147,26 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
     ]
 
 
+def extract_info_gathered(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    package_name = None
+    location = None
+    budget = None
+
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type != "function":
+                continue
+            function = tool.function
+            if function.name == "check_info_gathered":
+                arg = json.loads(function.arguments)
+                package_name = arg.get("package_name")
+                location = arg.get("location")
+                budget = arg.get("budget")
+
+    return package_name, location, budget
+
+
 def build_handover_to_bk_function() -> list[ChatCompletionToolParam]:
     return [
         {
@@ -212,7 +232,30 @@ def build_check_info_gathered_function() -> list[ChatCompletionToolParam]:
                     2. Prefered location
                     3. Budget (if any)
                 """,
-                "parameters": {},
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "package_name": {
+                            "type": "string",
+                            "description": """
+                            The name of package/ailment that the customer is looking for.
+                            """,
+                        },
+                        "location": {
+                            "type": "string",
+                            "description": """
+                            The location that the customer would prefer.
+                            """,
+                        },
+                        "budget": {
+                            "type": "string",
+                            "description": """
+                            Price range that the user might be looking for (if applicable).
+                            """,
+                        },
+                    },
+                    "required": ["package_name, location"],
+                },
             },
         }
     ]
