@@ -86,13 +86,11 @@ class AdvancedRAGChat:
             # If locations are present in query -> results are likely to be more wider -> add exactTerm to
             # ensure its still relevant
             query_text = f"{search_query} {' OR '.join(locations)}"
-            query_text += " package"
             packages, is_package_found = await self.searcher.google_search(
                 query_text=query_text, exact_term=search_query, top=3
             )
         else:
             query_text = search_query
-            query_text += " package"
             packages, is_package_found = await self.searcher.google_search(
                 query_text=query_text, exact_term=None, top=3
             )
