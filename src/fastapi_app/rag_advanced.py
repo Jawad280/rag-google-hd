@@ -54,6 +54,7 @@ class AdvancedRAGChat:
         self.answer_prompt_template = open(current_dir / "prompts/answer.txt").read()
         self.interpret_prompt_template = open(current_dir / "prompts/interpret.txt").read()
         self.gather_template = open(current_dir / "prompts/gather.txt").read()
+        self.credit_card = open(current_dir / "prompts/credit_card.txt").read()
 
     @retry(
         wait=wait_random_exponential(min=1, max=60),
@@ -127,24 +128,7 @@ class AdvancedRAGChat:
             if isinstance(message["content"], str):
                 message["content"] = [{"type": "text", "text": message["content"]}]
 
-        # Generate LLM's interpretation of the user input
-        # interpret_messages = copy.deepcopy(messages)
-        # interpret_messages.insert(0, {"role": "system", "content": self.interpret_prompt_template})
-        # interpret_response_token_limit = 300
-
-        # interpret_chat_completion: ChatCompletion = await self.openai_chat_completion(
-        #     messages=interpret_messages,
-        #     model=self.chat_deployment if self.chat_deployment else self.chat_model,
-        #     temperature=0.0,
-        #     max_tokens=interpret_response_token_limit,
-        #     n=1,
-        # )
-
-        # interpret_resp = interpret_chat_completion.model_dump()
-        # llm_interpretation = interpret_resp["choices"][0]["message"]["content"]
-        # thought_steps = [ThoughtStep(title="What the llm has interpreted", description=llm_interpretation, props={})]
         thought_steps = []
-        # messages[-1]["content"].append({"type": "text", "text": llm_interpretation})
 
         # Generate a prompt to specify the package if the user is referring to a specific package
         specify_package_messages = copy.deepcopy(messages)
@@ -175,6 +159,7 @@ class AdvancedRAGChat:
             # LLM to check if we have gathered the information
             info_messages = copy.deepcopy(messages)
             info_messages.insert(0, {"role": "system", "content": self.gather_template})
+            info_messages.insert(1, {"role": "system", "content": self.credit_card})
             info_response_token_limit = 300
 
             info_chat_completion: ChatCompletion = await self.openai_chat_completion(

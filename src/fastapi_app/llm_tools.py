@@ -136,6 +136,7 @@ def build_handover_to_cx_function() -> list[ChatCompletionToolParam]:
                 customer support agent/human/someone when the user's message indicates the following :
                     1. If the user wants to talk to a salesperson to buy something, call the 'handover_to_cx' function
                     2. If the user wants something that you cannot provide, call the 'handover_to_cx' function
+                    3. If the user is ready to purchase a package/service
                 Caution : There is a nuance when the user says "I want..."/"Im looking for..". 
                 Based on the chat history, if the user says they want to purchase the package then call this function. 
                 If they are simply curious and say something like "I want/looking for a health checkup/treatment", 
@@ -175,7 +176,7 @@ def build_handover_to_bk_function() -> list[ChatCompletionToolParam]:
                 "name": "handover_to_bk",
                 "description": """
                 This function is used to seamlessly transfer the current conversation to the booking team
-                when the user's message indicates strongly any mention about reservations or post-payment 
+                when the user's message indicates strongly any mention about RESERVATIONS or POST-PAYMENT
                 enquiry for packages.
                 """,
                 "parameters": {},
