@@ -4,6 +4,7 @@ import pathlib
 from collections.abc import AsyncGenerator
 from typing import Any
 
+import requests
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 from openai_messages_token_helper import get_token_limit
@@ -14,18 +15,23 @@ from .llm_tools import (
     build_app_link_function,
     build_check_info_gathered_function,
     build_clear_history_function,
+    build_coupon_function,
     build_google_search_function,
     build_handover_to_bk_function,
     build_handover_to_cx_function,
+    build_payment_promo_function,
     build_specify_package_function,
     extract_info_gathered,
+    extract_payment_promo,
     extract_search_arguments,
     handle_specify_package_function_call,
     is_app_link,
     is_clear_history,
+    is_coupon,
     is_gathered_info,
     is_handover_to_bk,
     is_handover_to_cx,
+    is_payment_promo,
 )
 from .postgres_searcher import PostgresSearcher
 
@@ -55,12 +61,25 @@ class AdvancedRAGChat:
         self.interpret_prompt_template = open(current_dir / "prompts/interpret.txt").read()
         self.gather_template = open(current_dir / "prompts/gather.txt").read()
         self.credit_card = open(current_dir / "prompts/credit_card.txt").read()
+        self.coupon_template = open(current_dir / "prompts/coupon.txt").read()
+        self.promo_template = open(current_dir / "prompts/promo.txt").read()
 
     @retry(
         wait=wait_random_exponential(min=1, max=60),
         stop=stop_after_attempt(6),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
+    def get_payment_promos(self):
+        url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
+
+        try:
+            res = requests.get(url=url)
+            res.raise_for_status()
+            return res.text
+        except requests.exceptions.RequestException as e:
+            print(f"Error: {e}")
+            return ""
+
     async def openai_chat_completion(self, *args, **kwargs) -> ChatCompletion:
         return await self.openai_chat_client.chat.completions.create(*args, **kwargs)
 
@@ -145,11 +164,86 @@ class AdvancedRAGChat:
             + build_handover_to_bk_function()
             + build_specify_package_function()
             + build_clear_history_function()
-            + build_app_link_function(),
+            + build_app_link_function()
+            + build_coupon_function()
+            + build_payment_promo_function(),
         )
 
         specify_package_resp = specify_package_chat_completion.model_dump()
         filter_url = None
+
+        if is_payment_promo(specify_package_chat_completion):
+            # LLM to answer queries about payment promotions
+            promo_messages = copy.deepcopy(messages)
+            payment_promos = self.get_payment_promos()
+            promo_name = extract_payment_promo(specify_package_chat_completion)
+            promo_messages.insert(0, {"role": "system", "content": self.promo_template})
+            promo_messages[-1]["content"].append(
+                {"type": "text", "text": f"Payment Promo requested by user: {promo_name}"}
+            )
+            promo_messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + payment_promos})
+            promo_response_token_limit = 300
+
+            promo_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=promo_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=promo_response_token_limit,
+                n=1,
+                tools=None,
+            )
+
+            chat_resp = promo_chat_completion.model_dump()
+
+            chat_resp["choices"][0]["context"] = {
+                "data_points": "",
+                "thoughts": thought_steps
+                + [
+                    ThoughtStep(
+                        title="Prompt to generate answer",
+                        description=[str(message) for message in messages],
+                        props=(
+                            {"model": self.chat_model, "deployment": self.chat_deployment}
+                            if self.chat_deployment
+                            else {"model": self.chat_model}
+                        ),
+                    ),
+                ],
+            }
+            return chat_resp
+
+        if is_coupon(specify_package_chat_completion):
+            coupon_messages = copy.deepcopy(messages)
+            coupon_messages.insert(0, {"role": "system", "content": self.coupon_template})
+            coupon_response_token_limit = 300
+
+            coupon_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=coupon_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=coupon_response_token_limit,
+                n=1,
+                tools=None,
+            )
+
+            chat_resp = coupon_chat_completion.model_dump()
+
+            chat_resp["choices"][0]["context"] = {
+                "data_points": "",
+                "thoughts": thought_steps
+                + [
+                    ThoughtStep(
+                        title="Prompt to generate answer",
+                        description=[str(message) for message in messages],
+                        props=(
+                            {"model": self.chat_model, "deployment": self.chat_deployment}
+                            if self.chat_deployment
+                            else {"model": self.chat_model}
+                        ),
+                    ),
+                ],
+            }
+            return chat_resp
 
         if is_clear_history(specify_package_chat_completion):
             specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_CLEAR_HISTORY"
@@ -158,8 +252,9 @@ class AdvancedRAGChat:
         if is_handover_to_cx(specify_package_chat_completion):
             # LLM to check if we have gathered the information
             info_messages = copy.deepcopy(messages)
+            payment_promos = self.get_payment_promos()
             info_messages.insert(0, {"role": "system", "content": self.gather_template})
-            info_messages.insert(1, {"role": "system", "content": self.credit_card})
+            messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + payment_promos})
             info_response_token_limit = 300
 
             info_chat_completion: ChatCompletion = await self.openai_chat_completion(

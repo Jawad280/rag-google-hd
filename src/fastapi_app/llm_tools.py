@@ -262,6 +262,80 @@ def build_check_info_gathered_function() -> list[ChatCompletionToolParam]:
     ]
 
 
+def build_payment_promo_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "payment_promo",
+                "description": """
+                This function is triggered when the user is asking about any promotions/deals in 
+                payment methods like credit cards.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "promo_name": {
+                            "type": "string",
+                            "description": "The name of the card that user is interested in",
+                        }
+                    },
+                },
+            },
+        }
+    ]
+
+
+def extract_payment_promo(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    promo_name = None
+
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type != "function":
+                continue
+            function = tool.function
+            if function.name == "payment_promo":
+                arg = json.loads(function.arguments)
+                promo_name = arg.get("promo_name")
+
+    return promo_name
+
+
+def build_coupon_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "coupon",
+                "description": """
+                This function is only triggered when the user asks anything related to coupons.
+                Like how to claim them or where they can find them
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
+def is_payment_promo(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "payment_promo":
+                return True
+    return False
+
+
+def is_coupon(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "coupon":
+                return True
+    return False
+
+
 def is_gathered_info(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
     if response_message.tool_calls:
