@@ -12,7 +12,6 @@ from tenacity import before_sleep_log, retry, stop_after_attempt, wait_random_ex
 
 from .api_models import ThoughtStep
 from .llm_tools import (
-    build_app_link_function,
     build_check_info_gathered_function,
     build_clear_history_function,
     build_coupon_function,
@@ -20,18 +19,18 @@ from .llm_tools import (
     build_handover_to_bk_function,
     build_handover_to_cx_function,
     build_payment_promo_function,
+    build_pharmacy_function,
     build_specify_package_function,
     extract_info_gathered,
-    extract_payment_promo,
     extract_search_arguments,
     handle_specify_package_function_call,
-    is_app_link,
     is_clear_history,
     is_coupon,
     is_gathered_info,
     is_handover_to_bk,
     is_handover_to_cx,
     is_payment_promo,
+    is_pharmacy,
 )
 from .postgres_searcher import PostgresSearcher
 
@@ -63,6 +62,7 @@ class AdvancedRAGChat:
         self.credit_card = open(current_dir / "prompts/credit_card.txt").read()
         self.coupon_template = open(current_dir / "prompts/coupon.txt").read()
         self.promo_template = open(current_dir / "prompts/promo.txt").read()
+        self.pharmacy_template = open(current_dir / "prompts/pharmacy.txt").read()
 
     @retry(
         wait=wait_random_exponential(min=1, max=60),
@@ -164,36 +164,31 @@ class AdvancedRAGChat:
             + build_handover_to_bk_function()
             + build_specify_package_function()
             + build_clear_history_function()
-            + build_app_link_function()
+            + build_pharmacy_function()
             + build_coupon_function()
             + build_payment_promo_function(),
         )
 
         specify_package_resp = specify_package_chat_completion.model_dump()
         filter_url = None
+        sources_content = []
 
-        if is_payment_promo(specify_package_chat_completion):
-            # LLM to answer queries about payment promotions
-            promo_messages = copy.deepcopy(messages)
-            payment_promos = self.get_payment_promos()
-            promo_name = extract_payment_promo(specify_package_chat_completion)
-            promo_messages.insert(0, {"role": "system", "content": self.promo_template})
-            promo_messages[-1]["content"].append(
-                {"type": "text", "text": f"Payment Promo requested by user: {promo_name}"}
-            )
-            promo_messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + payment_promos})
-            promo_response_token_limit = 300
+        if is_pharmacy(specify_package_chat_completion):
+            # LLM to answer queries about pharmacy
+            pharmacy_messages = copy.deepcopy(messages)
+            pharmacy_messages.insert(0, {"role": "system", "content": self.pharmacy_template})
+            pharmacy_response_token_limit = 300
 
-            promo_chat_completion: ChatCompletion = await self.openai_chat_completion(
-                messages=promo_messages,
+            pharmacy_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=pharmacy_messages,
                 model=self.chat_deployment if self.chat_deployment else self.chat_model,
                 temperature=0.0,
-                max_tokens=promo_response_token_limit,
+                max_tokens=pharmacy_response_token_limit,
                 n=1,
                 tools=None,
             )
 
-            chat_resp = promo_chat_completion.model_dump()
+            chat_resp = pharmacy_chat_completion.model_dump()
 
             chat_resp["choices"][0]["context"] = {
                 "data_points": "",
@@ -210,6 +205,30 @@ class AdvancedRAGChat:
                     ),
                 ],
             }
+            return chat_resp
+
+        if is_payment_promo(specify_package_chat_completion):
+            # LLM to answer queries about payment promotions
+            promo_messages = copy.deepcopy(messages)
+            payment_promos = self.get_payment_promos()
+            promo_messages.insert(0, {"role": "system", "content": self.promo_template})
+            promo_messages[-1]["content"].append(
+                {"type": "text", "text": "\n\nPayment Promotion Sources:\n" + payment_promos}
+            )
+            promo_response_token_limit = 4096
+
+            promo_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=promo_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=promo_response_token_limit,
+                n=1,
+                tools=None,
+            )
+
+            chat_resp = promo_chat_completion.model_dump()
+
+            chat_resp["choices"][0]["context"] = {"data_points": "", "thoughts": thought_steps}
             return chat_resp
 
         if is_coupon(specify_package_chat_completion):
@@ -252,9 +271,7 @@ class AdvancedRAGChat:
         if is_handover_to_cx(specify_package_chat_completion):
             # LLM to check if we have gathered the information
             info_messages = copy.deepcopy(messages)
-            payment_promos = self.get_payment_promos()
             info_messages.insert(0, {"role": "system", "content": self.gather_template})
-            messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + payment_promos})
             info_response_token_limit = 300
 
             info_chat_completion: ChatCompletion = await self.openai_chat_completion(
@@ -359,10 +376,8 @@ class AdvancedRAGChat:
                 # No results found with SQL search, fall back to the google search
                 sources_content, additional_thought_steps, filter_url = await self.google_search(messages)
                 thought_steps.extend(additional_thought_steps)
-        elif is_app_link(specify_package_chat_completion):
-            sources_content = []
-            thought_steps.extend([ThoughtStep(title="Pharmacy/Medicine related query", description="", props={})])
         else:  # Google search
+            print("Google search is triggered by default")
             sources_content, additional_thought_steps, filter_url = await self.google_search(messages)
             thought_steps.extend(additional_thought_steps)
 

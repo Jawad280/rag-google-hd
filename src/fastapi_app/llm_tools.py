@@ -185,16 +185,15 @@ def build_handover_to_bk_function() -> list[ChatCompletionToolParam]:
     ]
 
 
-def build_app_link_function() -> list[ChatCompletionToolParam]:
+def build_pharmacy_function() -> list[ChatCompletionToolParam]:
     return [
         {
             "type": "function",
             "function": {
-                "name": "app_link",
+                "name": "pharmacy",
                 "description": """
-                This function is used to provide a download link for our app : https://www.example.com. You trigger 
-                this function when the user has a strong intent to enquire about pharmacy or medicine related queries.
-                All you have to do is simply return the download link in the response.
+                This function is triggered when the user has a strong intent to enquire about 
+                pharmacy or medicine related queries.
                 """,
                 "parameters": {},
             },
@@ -272,34 +271,10 @@ def build_payment_promo_function() -> list[ChatCompletionToolParam]:
                 This function is triggered when the user is asking about any promotions/deals in 
                 payment methods like credit cards.
                 """,
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "promo_name": {
-                            "type": "string",
-                            "description": "The name of the card that user is interested in",
-                        }
-                    },
-                },
+                "parameters": {},
             },
         }
     ]
-
-
-def extract_payment_promo(chat_completion: ChatCompletion):
-    response_message = chat_completion.choices[0].message
-    promo_name = None
-
-    if response_message.tool_calls:
-        for tool in response_message.tool_calls:
-            if tool.type != "function":
-                continue
-            function = tool.function
-            if function.name == "payment_promo":
-                arg = json.loads(function.arguments)
-                promo_name = arg.get("promo_name")
-
-    return promo_name
 
 
 def build_coupon_function() -> list[ChatCompletionToolParam]:
@@ -372,10 +347,10 @@ def is_handover_to_bk(chat_completion: ChatCompletion):
     return False
 
 
-def is_app_link(chat_completion: ChatCompletion):
+def is_pharmacy(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
     if response_message.tool_calls:
         for tool in response_message.tool_calls:
-            if tool.type == "function" and tool.function.name == "app_link":
+            if tool.type == "function" and tool.function.name == "pharmacy":
                 return True
     return False
