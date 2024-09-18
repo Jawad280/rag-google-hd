@@ -10,4 +10,4 @@ In your response, URLs should not be wrapped in parantheses.
 
 The customer has asked for some information regarding coupons like how to redeem them or where to find them.
 Your job is to simply reply in their language that they should:
-คุณสามารถรับคูปองส่วนลดง่ายๆ เพียงกรอกฟอร์มสั้นๆ ที่ลิงก์ https://liff.line.me/2000438750-xeAQOJr9 หลังกรอกเสร็จจะมีคูปองส่วนลดโผล่ขึ้นมาให้คุณทันทีค่ะ
+คุณสามารถรับคูปองส่วนลดง่ายๆ เพียงกรอกฟอร์มสั้นๆ ที่ลิงก์ https://bit.ly/hdmall-crm-survey หลังกรอกเสร็จจะมีคูปองส่วนลดโผล่ขึ้นมาให้คุณทันทีค่ะ

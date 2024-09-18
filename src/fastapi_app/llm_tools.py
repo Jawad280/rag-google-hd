@@ -293,6 +293,83 @@ def build_coupon_function() -> list[ChatCompletionToolParam]:
     ]
 
 
+def build_welcome_intent_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "welcome_intent",
+                "description": """
+                This function is triggered when the user initiates a conversation with greetings, introductions,
+                or similar welcoming phrases.
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
+def build_payment_query_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "payment_query",
+                "description": """
+                This function is triggered when the user asks about payment options.
+                Examples include: 'Can I pay online?', 'Where can I pay?', or 'Do I need to pay at the hospital?'
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {
+                            "type": "string",
+                            "description": """
+                            The exact URL of the package from past messages,
+                            e.g. 'https://hdmall.co.th/dental-clinics/xray-for-orthodontics-1-csdc'
+                            If it includes any UTM parameters, please remove them.
+                            """,
+                        },
+                    },
+                    "required": [],
+                },
+            },
+        }
+    ]
+
+
+def extract_url(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    package_url = ""
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and (
+                tool.function.name == "specify_package" or tool.function.name == "payment_query"
+            ):
+                args = json.loads(tool.function.arguments)
+                url = args.get("url")
+                package_url = url
+    return package_url
+
+
+def is_welcome_intent(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "welcome_intent":
+                return True
+    return False
+
+
+def is_payment_query(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "payment_query":
+                return True
+    return False
+
+
 def is_payment_promo(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
     if response_message.tool_calls:

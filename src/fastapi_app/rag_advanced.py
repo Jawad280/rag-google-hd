@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import pathlib
 from collections.abc import AsyncGenerator
@@ -19,10 +20,13 @@ from .llm_tools import (
     build_handover_to_bk_function,
     build_handover_to_cx_function,
     build_payment_promo_function,
+    build_payment_query_function,
     build_pharmacy_function,
     build_specify_package_function,
+    build_welcome_intent_function,
     extract_info_gathered,
     extract_search_arguments,
+    extract_url,
     handle_specify_package_function_call,
     is_clear_history,
     is_coupon,
@@ -30,7 +34,9 @@ from .llm_tools import (
     is_handover_to_bk,
     is_handover_to_cx,
     is_payment_promo,
+    is_payment_query,
     is_pharmacy,
+    is_welcome_intent,
 )
 from .postgres_searcher import PostgresSearcher
 
@@ -63,6 +69,7 @@ class AdvancedRAGChat:
         self.coupon_template = open(current_dir / "prompts/coupon.txt").read()
         self.promo_template = open(current_dir / "prompts/promo.txt").read()
         self.pharmacy_template = open(current_dir / "prompts/pharmacy.txt").read()
+        self.payment_template = open(current_dir / "prompts/payment.txt").read()
 
     @retry(
         wait=wait_random_exponential(min=1, max=60),
@@ -73,12 +80,56 @@ class AdvancedRAGChat:
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
 
         try:
-            res = requests.get(url=url)
+            body = {"info": "credit_card", "highlight_name": "", "highlight_url": "", "package_url": ""}
+            res = requests.post(url=url, json=body)
             res.raise_for_status()
-            return res.text
+            data = res.json()
+
+            payment_promos = "\n".join(
+                f"""
+                    promoName: {promo.get('promoName')}\n
+                    type: {promo.get('type', '')}\n
+                    keyBenefit: {promo.get('keyBenefit', '')}\n
+                    url: {promo.get('url', '')}\n
+                """
+                for promo in data
+            )
+
+            return payment_promos
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
             return ""
+
+    def get_highlight_info(self, highlight_name, highlight_url):
+        url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
+
+        try:
+            body = {
+                "info": "highlight",
+                "highlight_name": highlight_name,
+                "highlight_url": highlight_url,
+                "package_url": "",
+            }
+            res = requests.post(url=url, json=body)
+            res.raise_for_status()
+            return res.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error: {e}")
+            return None
+
+    def get_payment_method(self, package_url: str):
+        url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
+
+        try:
+            body = {"info": "payment_method", "highlight_name": "", "highlight_url": "", "package_url": package_url}
+            res = requests.post(url=url, json=body)
+            res.raise_for_status()
+            data = res.json()
+            print(data)
+            return data.get("paymentMethod")
+        except requests.exceptions.RequestException as e:
+            print(f"Error: {e}")
+            return None
 
     async def openai_chat_completion(self, *args, **kwargs) -> ChatCompletion:
         return await self.openai_chat_client.chat.completions.create(*args, **kwargs)
@@ -139,7 +190,7 @@ class AdvancedRAGChat:
                 ThoughtStep(title="Url to suggest for the filter search", description=filter_url, props={}),
             ]
 
-        return sources_content, thought_steps, filter_url
+        return sources_content, thought_steps, filter_url, search_query
 
     async def run(self, messages: list[dict]) -> dict[str, Any] | AsyncGenerator[dict[str, Any], None]:
         # Normalize the message format
@@ -166,12 +217,49 @@ class AdvancedRAGChat:
             + build_clear_history_function()
             + build_pharmacy_function()
             + build_coupon_function()
-            + build_payment_promo_function(),
+            + build_payment_promo_function()
+            + build_welcome_intent_function()
+            + build_payment_query_function(),
         )
 
         specify_package_resp = specify_package_chat_completion.model_dump()
         filter_url = None
         sources_content = []
+
+        if is_welcome_intent(specify_package_chat_completion):
+            # LLM to answer welcome messages
+            print("Welcome triggered")
+            welcome_messages = copy.deepcopy(messages)
+            welcome_messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
+            welcome_response_token_limit = 300
+
+            welcome_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=welcome_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=welcome_response_token_limit,
+                n=1,
+                tools=None,
+            )
+
+            chat_resp = welcome_chat_completion.model_dump()
+
+            chat_resp["choices"][0]["context"] = {
+                "data_points": "",
+                "thoughts": thought_steps
+                + [
+                    ThoughtStep(
+                        title="Prompt to generate answer",
+                        description=[str(message) for message in messages],
+                        props=(
+                            {"model": self.chat_model, "deployment": self.chat_deployment}
+                            if self.chat_deployment
+                            else {"model": self.chat_model}
+                        ),
+                    ),
+                ],
+            }
+            return chat_resp
 
         if is_pharmacy(specify_package_chat_completion):
             # LLM to answer queries about pharmacy
@@ -207,11 +295,50 @@ class AdvancedRAGChat:
             }
             return chat_resp
 
+        if is_payment_query(specify_package_chat_completion):
+            # LLM to answer queries about payment
+            print("Payment Route triggered")
+            package_url = extract_url(specify_package_chat_completion)
+            print(package_url)
+            payment_method = self.get_payment_method(package_url)
+            messages.insert(0, {"role": "system", "content": self.payment_template})
+            messages[-1]["content"].append({"type": "text", "text": "\n\Payment Method:\n" + payment_method})
+            payment_response_token_limit = 300
+
+            payment_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=payment_response_token_limit,
+                n=1,
+                tools=None,
+            )
+
+            chat_resp = payment_chat_completion.model_dump()
+
+            chat_resp["choices"][0]["context"] = {
+                "data_points": "",
+                "thoughts": thought_steps
+                + [
+                    ThoughtStep(
+                        title="Prompt to generate answer",
+                        description=[str(message) for message in messages],
+                        props=(
+                            {"model": self.chat_model, "deployment": self.chat_deployment}
+                            if self.chat_deployment
+                            else {"model": self.chat_model}
+                        ),
+                    ),
+                ],
+            }
+            return chat_resp
+
         if is_payment_promo(specify_package_chat_completion):
             # LLM to answer queries about payment promotions
             promo_messages = copy.deepcopy(messages)
             payment_promos = self.get_payment_promos()
             promo_messages.insert(0, {"role": "system", "content": self.promo_template})
+            payment_promos = "\n".join(payment_promos)
             promo_messages[-1]["content"].append(
                 {"type": "text", "text": "\n\nPayment Promotion Sources:\n" + payment_promos}
             )
@@ -342,6 +469,8 @@ class AdvancedRAGChat:
             return specify_package_resp
 
         specify_package_filters = handle_specify_package_function_call(specify_package_chat_completion)
+        highlight_url = extract_url(specify_package_chat_completion)
+        highlight_query = ""
 
         if specify_package_filters:  # Simple SQL search
             results = await self.searcher.simple_sql_search(filters=specify_package_filters)
@@ -374,17 +503,31 @@ class AdvancedRAGChat:
             else:
                 print("Google search triggered as couldnt find any packages")
                 # No results found with SQL search, fall back to the google search
-                sources_content, additional_thought_steps, filter_url = await self.google_search(messages)
+                sources_content, additional_thought_steps, filter_url, query = await self.google_search(messages)
+                highlight_query = query
                 thought_steps.extend(additional_thought_steps)
         else:  # Google search
             print("Google search is triggered by default")
-            sources_content, additional_thought_steps, filter_url = await self.google_search(messages)
+            sources_content, additional_thought_steps, filter_url, query = await self.google_search(messages)
+            highlight_query = query
             thought_steps.extend(additional_thought_steps)
 
         content = "\n".join(sources_content)
+        highlight_content = ""
+        highlight_name = highlight_query
+        print(highlight_url, highlight_name)
+
+        if highlight_name or highlight_url:
+            result = self.get_highlight_info(highlight_name=highlight_name, highlight_url=highlight_url)
+            if result:
+                # Found highlight content
+                highlight_content = json.dumps(result, ensure_ascii=False)
 
         # Build messages for the final chat completion
         messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
+        messages[-1]["content"].append(
+            {"type": "text", "text": "\n\nHighlight Campaign Sources:\n" + highlight_content}
+        )
         messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + content})
 
         # Append the URL to the final message
