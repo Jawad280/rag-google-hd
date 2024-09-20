@@ -257,13 +257,6 @@ class AdvancedRAGChat:
         filter_url = None
         sources_content = []
 
-        if is_immediate_handover(specify_package_chat_completion):
-            package_name = extract_package_name(specify_package_chat_completion)
-            specify_package_resp["choices"][0]["message"]["content"] = (
-                "QISCUS_INTEGRATION_TO_IMMEDIATE_CX: " + package_name
-            )
-            return specify_package_resp
-
         if is_welcome_intent(specify_package_chat_completion):
             # LLM to answer welcome messages
             print("Welcome triggered")
@@ -526,6 +519,13 @@ class AdvancedRAGChat:
 
         if is_handover_to_bk(specify_package_chat_completion):
             specify_package_resp["choices"][0]["message"]["content"] = "QISCUS_INTEGRATION_TO_BK"
+            return specify_package_resp
+
+        if is_immediate_handover(specify_package_chat_completion):
+            package_name = extract_package_name(specify_package_chat_completion)
+            specify_package_resp["choices"][0]["message"]["content"] = (
+                "QISCUS_INTEGRATION_TO_IMMEDIATE_CX: " + package_name
+            )
             return specify_package_resp
 
         specify_package_filters = handle_specify_package_function_call(specify_package_chat_completion)
