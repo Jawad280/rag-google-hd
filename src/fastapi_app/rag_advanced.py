@@ -20,6 +20,7 @@ from .llm_tools import (
     build_handover_to_bk_function,
     build_handover_to_cx_function,
     build_immediate_handover_function,
+    build_installements_query_function,
     build_payment_promo_function,
     build_payment_query_function,
     build_pharmacy_function,
@@ -36,6 +37,7 @@ from .llm_tools import (
     is_handover_to_bk,
     is_handover_to_cx,
     is_immediate_handover,
+    is_installments_query,
     is_payment_promo,
     is_payment_query,
     is_pharmacy,
@@ -73,6 +75,7 @@ class AdvancedRAGChat:
         self.promo_template = open(current_dir / "prompts/promo.txt").read()
         self.pharmacy_template = open(current_dir / "prompts/pharmacy.txt").read()
         self.payment_template = open(current_dir / "prompts/payment.txt").read()
+        self.installment_template = open(current_dir / "prompts/installment.txt").read()
 
     @retry(
         wait=wait_random_exponential(min=1, max=60),
@@ -246,7 +249,8 @@ class AdvancedRAGChat:
             + build_payment_promo_function()
             + build_welcome_intent_function()
             + build_payment_query_function()
-            + build_immediate_handover_function(),
+            + build_immediate_handover_function()
+            + build_installements_query_function(),
         )
 
         specify_package_resp = specify_package_chat_completion.model_dump()
@@ -369,6 +373,7 @@ class AdvancedRAGChat:
 
         if is_payment_promo(specify_package_chat_completion):
             # LLM to answer queries about payment promotions
+            print("Payment Promotions route triggered")
             promo_messages = copy.deepcopy(messages)
             payment_promos = self.get_payment_promos()
             promo_messages.insert(0, {"role": "system", "content": self.promo_template})
@@ -388,6 +393,27 @@ class AdvancedRAGChat:
             )
 
             chat_resp = promo_chat_completion.model_dump()
+
+            chat_resp["choices"][0]["context"] = {"data_points": "", "thoughts": thought_steps}
+            return chat_resp
+
+        if is_installments_query(specify_package_chat_completion):
+            # LLM to answer queries about installments
+            print("Installment route triggered")
+            installment_messages = copy.deepcopy(messages)
+            installment_messages.insert(0, {"role": "system", "content": self.installment_template})
+            installment_response_token_limit = 400
+
+            installment_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=installment_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=installment_response_token_limit,
+                n=1,
+                tools=None,
+            )
+
+            chat_resp = installment_chat_completion.model_dump()
 
             chat_resp["choices"][0]["context"] = {"data_points": "", "thoughts": thought_steps}
             return chat_resp

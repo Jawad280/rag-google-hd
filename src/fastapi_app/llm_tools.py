@@ -357,12 +357,28 @@ def build_immediate_handover_function() -> list[ChatCompletionToolParam]:
                             "type": "string",
                             "description": """
                             One of the package names that triggered this function. 
-                            For example Lasik or ReLEx or HPV Vaccines
+                            if the package name is either Lasik/ReLEx, return "Lasik"
+                            if the package name is HPV vaccines, return "HPV Vaccine"
                             """,
                         },
                     },
                     "required": [],
                 },
+            },
+        }
+    ]
+
+
+def build_installements_query_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "installments_query",
+                "description": """
+                    This function is triggered when the user enquires/asks about installment payment options.
+                """,
+                "parameters": {},
             },
         }
     ]
@@ -393,6 +409,15 @@ def extract_url(chat_completion: ChatCompletion):
                 url = args.get("url")
                 package_url = url
     return package_url
+
+
+def is_installments_query(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "installments_query":
+                return True
+    return False
 
 
 def is_immediate_handover(chat_completion: ChatCompletion):
