@@ -19,12 +19,14 @@ from .llm_tools import (
     build_google_search_function,
     build_handover_to_bk_function,
     build_handover_to_cx_function,
+    build_immediate_handover_function,
     build_payment_promo_function,
     build_payment_query_function,
     build_pharmacy_function,
     build_specify_package_function,
     build_welcome_intent_function,
     extract_info_gathered,
+    extract_package_name,
     extract_search_arguments,
     extract_url,
     handle_specify_package_function_call,
@@ -33,6 +35,7 @@ from .llm_tools import (
     is_gathered_info,
     is_handover_to_bk,
     is_handover_to_cx,
+    is_immediate_handover,
     is_payment_promo,
     is_payment_query,
     is_pharmacy,
@@ -242,12 +245,20 @@ class AdvancedRAGChat:
             + build_coupon_function()
             + build_payment_promo_function()
             + build_welcome_intent_function()
-            + build_payment_query_function(),
+            + build_payment_query_function()
+            + build_immediate_handover_function(),
         )
 
         specify_package_resp = specify_package_chat_completion.model_dump()
         filter_url = None
         sources_content = []
+
+        if is_immediate_handover(specify_package_chat_completion):
+            package_name = extract_package_name(specify_package_chat_completion)
+            specify_package_resp["choices"][0]["message"]["content"] = (
+                "QISCUS_INTEGRATION_TO_IMMEDIATE_CX: " + package_name
+            )
+            return specify_package_resp
 
         if is_welcome_intent(specify_package_chat_completion):
             # LLM to answer welcome messages

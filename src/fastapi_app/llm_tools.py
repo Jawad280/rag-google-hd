@@ -350,10 +350,35 @@ def build_immediate_handover_function() -> list[ChatCompletionToolParam]:
                     - ReLEx
                     - HPV Vaccines 
                 """,
-                "parameters": {},
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "package_name": {
+                            "type": "string",
+                            "description": """
+                            One of the package names that triggered this function. 
+                            For example Lasik or ReLEx or HPV Vaccines
+                            """,
+                        },
+                    },
+                    "required": [],
+                },
             },
         }
     ]
+
+
+def extract_package_name(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    package_name = ""
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and (
+                tool.function.name == "specify_package" or tool.function.name == "immediate_handover"
+            ):
+                args = json.loads(tool.function.arguments)
+                package_name = args.get("package_name")
+    return package_name
 
 
 def extract_url(chat_completion: ChatCompletion):
