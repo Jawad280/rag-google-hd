@@ -5,3 +5,4 @@ If there's a typo in the chat history, the search query should fix the typo firs
 If the question is not in Thai, translate the question to Thai before generating the search query.
 If you cannot generate a search query, return the original user question.
 DO NOT return anything besides the query.
+I have attached some tags below, if the search query you are going to generate is almost similar to ANY of the tags, return that tag !

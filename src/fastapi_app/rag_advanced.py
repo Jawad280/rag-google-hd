@@ -117,6 +117,26 @@ class AdvancedRAGChat:
             print(f"Error: {e}")
             return None
 
+    def get_highlight_tags(self):
+        url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
+
+        try:
+            body = {
+                "info": "highlight_tags",
+                "highlight_name": "",
+                "highlight_url": "",
+                "package_url": "",
+            }
+            res = requests.post(url=url, json=body)
+            res.raise_for_status()
+            data = res.json()
+            highlight_tags = data.get("highlightTags")
+            highlight_tags = "\n".join(tag for tag in highlight_tags)
+            return highlight_tags
+        except requests.exceptions.RequestException as e:
+            print(f"Error: {e}")
+            return None
+
     def get_payment_method(self, package_url: str):
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
 
@@ -137,7 +157,10 @@ class AdvancedRAGChat:
     async def google_search(self, messages):
         # Generate an optimized keyword search query based on the chat history and the last question
         query_messages = copy.deepcopy(messages)
+
+        highlight_tags = self.get_highlight_tags()
         query_messages.insert(0, {"role": "system", "content": self.query_prompt_template})
+        query_messages[-1]["content"].append({"type": "text", "text": "\n\TAGS:\n" + highlight_tags})
         query_response_token_limit = 500
 
         query_chat_completion: ChatCompletion = await self.openai_chat_completion(

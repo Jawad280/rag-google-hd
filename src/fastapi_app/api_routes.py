@@ -50,5 +50,4 @@ async def chat_handler(chat_request: ChatRequest):
     chat_resp["choices"][0]["message"]["content"] = chat_resp_content
 
     # Format markdown responses by removing any text wrapped in **
-
     return chat_resp

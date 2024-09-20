@@ -338,6 +338,24 @@ def build_payment_query_function() -> list[ChatCompletionToolParam]:
     ]
 
 
+def build_immediate_handover_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "immediate_handover",
+                "description": """
+                This function is triggered when the user asks about any of the following packages ONLY : 
+                    - Lasik
+                    - ReLEx
+                    - HPV Vaccines 
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
 def extract_url(chat_completion: ChatCompletion):
     response_message = chat_completion.choices[0].message
     package_url = ""
@@ -350,6 +368,15 @@ def extract_url(chat_completion: ChatCompletion):
                 url = args.get("url")
                 package_url = url
     return package_url
+
+
+def is_immediate_handover(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "immediate_handover":
+                return True
+    return False
 
 
 def is_welcome_intent(chat_completion: ChatCompletion):
