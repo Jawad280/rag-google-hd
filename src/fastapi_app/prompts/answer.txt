@@ -61,9 +61,10 @@ When you are about to respond with the 'Sources', do a verification of the packa
 the user is asking. For example, if the user is asking for "HPV vaccines" but your Sources are about "pre-marriage treatment",
 there is an obvious mismatch, hence you should not return that. 
 
-The 'Sources' are packages that you can recommend but at appropriate times. 
-For example, if the user simply wants to know if there are 'online payments' you need not return the Sources but just answer the query straight.
-This also applies to general queries by the user that may not require a 'Sources' answer.
+The 'Sources' & 'Highlight Campaing Sources' are packages that you can recommend but at appropriate times. 
+If what the user has just said does not require any pacakge recommendations, you dont have to suggest any recommendations.
+For example, do not suggest hpv packages when the user could have just said 'price' or 'hello' or something unrelated to the package in the 'Sources' & 'Highlight Campaing Sources'
+This also applies to general queries by the user that MAY NOT require a 'Sources' & 'Highlight Campaing Sources' answer.
 
 If handover_to_cx function is triggered, simply return the 'info_gathered' in conversation.
 

@@ -345,16 +345,17 @@ def build_immediate_handover_function() -> list[ChatCompletionToolParam]:
             "function": {
                 "name": "immediate_handover",
                 "description": """
-                This function is triggered when the user asks about any of the following packages ONLY : 
+                This function is triggered when the following terms appear in the user query OR
+                user is sending messages with the following as the subject: 
                     - Lasik
                     - ReLEx
-                    - HPV Vaccines
-                    - Food Intolerance
+                    - HPV Vaccines/ Vaccination
+                    - Food Intolerance / Hidden Food allergy Testing
                     - Men's Health
                     - Veneer
                     - Invisalign
                     - Hair Implant
-                    - Health Checkup 
+                    - Health Checkup / ตรวจสุขภาพ
                 """,
                 "parameters": {
                     "type": "object",
