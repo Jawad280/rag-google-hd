@@ -16,6 +16,7 @@ from .llm_tools import (
     build_check_info_gathered_function,
     build_clear_history_function,
     build_coupon_function,
+    build_generic_query_function,
     build_google_search_function,
     build_handover_to_bk_function,
     build_handover_to_cx_function,
@@ -34,6 +35,7 @@ from .llm_tools import (
     is_clear_history,
     is_coupon,
     is_gathered_info,
+    is_generic_query,
     is_handover_to_bk,
     is_handover_to_cx,
     is_immediate_handover,
@@ -250,7 +252,8 @@ class AdvancedRAGChat:
             + build_welcome_intent_function()
             + build_payment_query_function()
             + build_immediate_handover_function()
-            + build_installements_query_function(),
+            + build_installements_query_function()
+            + build_generic_query_function(),
         )
 
         specify_package_resp = specify_package_chat_completion.model_dump()
@@ -274,6 +277,41 @@ class AdvancedRAGChat:
             )
 
             chat_resp = welcome_chat_completion.model_dump()
+
+            chat_resp["choices"][0]["context"] = {
+                "data_points": "",
+                "thoughts": thought_steps
+                + [
+                    ThoughtStep(
+                        title="Prompt to generate answer",
+                        description=[str(message) for message in messages],
+                        props=(
+                            {"model": self.chat_model, "deployment": self.chat_deployment}
+                            if self.chat_deployment
+                            else {"model": self.chat_model}
+                        ),
+                    ),
+                ],
+            }
+            return chat_resp
+
+        if is_generic_query(specify_package_chat_completion):
+            # LLM to answer generic messages
+            print("Generic triggered")
+            generic_messages = copy.deepcopy(messages)
+            generic_messages.insert(0, {"role": "system", "content": self.answer_prompt_template})
+            generic_response_token_limit = 300
+
+            generic_chat_completion: ChatCompletion = await self.openai_chat_completion(
+                messages=generic_messages,
+                model=self.chat_deployment if self.chat_deployment else self.chat_model,
+                temperature=0.0,
+                max_tokens=generic_response_token_limit,
+                n=1,
+                tools=None,
+            )
+
+            chat_resp = generic_chat_completion.model_dump()
 
             chat_resp["choices"][0]["context"] = {
                 "data_points": "",
@@ -526,6 +564,7 @@ class AdvancedRAGChat:
             specify_package_resp["choices"][0]["message"]["content"] = (
                 "QISCUS_INTEGRATION_TO_IMMEDIATE_CX: " + package_name
             )
+            print("QISCUS_INTEGRATION_TO_IMMEDIATE_CX: " + package_name)
             return specify_package_resp
 
         specify_package_filters = handle_specify_package_function_call(specify_package_chat_completion)

@@ -348,7 +348,13 @@ def build_immediate_handover_function() -> list[ChatCompletionToolParam]:
                 This function is triggered when the user asks about any of the following packages ONLY : 
                     - Lasik
                     - ReLEx
-                    - HPV Vaccines 
+                    - HPV Vaccines
+                    - Food Intolerance
+                    - Men's Health
+                    - Veneer
+                    - Invisalign
+                    - Hair Implant
+                    - Health Checkup 
                 """,
                 "parameters": {
                     "type": "object",
@@ -359,6 +365,12 @@ def build_immediate_handover_function() -> list[ChatCompletionToolParam]:
                             One of the package names that triggered this function. 
                             if the package name is either Lasik/ReLEx, return "Lasik"
                             if the package name is HPV vaccines, return "HPV Vaccine"
+                            if the package name is Food Intolerance, return "Food Intolerance"
+                            if the package name is Men's Health, return "Men's Health"
+                            if the package name is Veneer, return "Veneer"
+                            if the package name is Invisalign, return "Invisalign"
+                            if the package name is Hair Implant, return "Vital Glow"
+                            if the package name is Health Checkup, return "Health Checkup"
                             """,
                         },
                     },
@@ -377,6 +389,24 @@ def build_installements_query_function() -> list[ChatCompletionToolParam]:
                 "name": "installments_query",
                 "description": """
                     This function is triggered when the user enquires/asks about installment payment options.
+                """,
+                "parameters": {},
+            },
+        }
+    ]
+
+
+def build_generic_query_function() -> list[ChatCompletionToolParam]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "generic_query",
+                "description": """
+                This function is triggered when you deem that the user's query 
+                does not require a response with suggestions of any health packages from our end.
+                For example, if the user simply responds with "ok" or "ah i see" or something generic, this does not 
+                require us to suggest any packages IN RESPONSE to this message
                 """,
                 "parameters": {},
             },
@@ -409,6 +439,15 @@ def extract_url(chat_completion: ChatCompletion):
                 url = args.get("url")
                 package_url = url
     return package_url
+
+
+def is_generic_query(chat_completion: ChatCompletion):
+    response_message = chat_completion.choices[0].message
+    if response_message.tool_calls:
+        for tool in response_message.tool_calls:
+            if tool.type == "function" and tool.function.name == "generic_query":
+                return True
+    return False
 
 
 def is_installments_query(chat_completion: ChatCompletion):
