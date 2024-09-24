@@ -153,8 +153,8 @@ class AdvancedRAGChat:
             res = requests.post(url=url, json=body)
             res.raise_for_status()
             data = res.json()
-            print(data)
-            return data.get("paymentMethod")
+            res = data.get("paymentMethod")
+            return res
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
             return ""
