@@ -123,7 +123,7 @@ class AdvancedRAGChat:
             return res.json()
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
-            return None
+            return ""
 
     def get_highlight_tags(self):
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
@@ -143,7 +143,7 @@ class AdvancedRAGChat:
             return highlight_tags
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
-            return None
+            return ""
 
     def get_payment_method(self, package_url: str):
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
@@ -157,7 +157,7 @@ class AdvancedRAGChat:
             return data.get("paymentMethod")
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
-            return None
+            return ""
 
     async def openai_chat_completion(self, *args, **kwargs) -> ChatCompletion:
         return await self.openai_chat_client.chat.completions.create(*args, **kwargs)
