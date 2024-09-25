@@ -25,14 +25,13 @@ Instead, trigger the `generic_query` function for responses that fit these patte
 - "in english/any other language"
 - any other message that does not require further engagement or a package suggestion.
 
-If the following terms appear in the user query OR user is interested/asks about the following: 
+If the following terms appear in the user query OR user is interested/asks about the following call the 'immediate_handover' function: 
 - Lasik
 - ReLEx
-- HPV Vaccines/ Vaccination
-- Food Intolerance / Hidden Food allergy Testing
-- Men's Health
+- HPV Vaccines/Vaccination
+- Food Intolerance/Hidden Food allergy Testing
+- Men's Health/Mediprime
 - Veneer
 - Invisalign
 - Hair Implant
 - Health Checkup
-call the 'immediate_handover' function
