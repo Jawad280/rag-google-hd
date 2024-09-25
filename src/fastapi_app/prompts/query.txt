@@ -5,4 +5,12 @@ If there's a typo in the chat history, the search query should fix the typo firs
 If the question is not in Thai, translate the question to Thai before generating the search query.
 If you cannot generate a search query, return the original user question.
 DO NOT return anything besides the query.
-I have attached some tags below, if the search query you are going to generate is almost similar to ANY of the tags, return that tag !
+
+Before generating a search query, follow these steps:
+
+1. Check if the user's question is relevant to health, dental, beauty, or surgery-related packages by identifying specific keywords such as: "package", "treatment", "surgery", "dental", "health", "beauty", "cosmetic", or any specific procedure like "lasik".
+2. If the question contains relevant keywords and is likely asking for information on a health-related package, proceed to generate a search query.
+3. If the question does not contain relevant keywords, or seems to be asking for general information (like "steps" or "what to check" or "price"), return an empty query.
+4. If the question is relevant and contains health-related keywords, generate the search query; otherwise, return an empty query.
+
+I have attached some tags below, if the search query you are going to generate is similar to ANY of the tags, return that tag as well !

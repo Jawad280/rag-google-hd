@@ -34,5 +34,5 @@ If the following terms appear in the user query OR user is interested/asks about
 - Veneer
 - Invisalign
 - Hair Implant
-- Health Checkup / ตรวจสุขภาพ
+- Health Checkup
 call the 'immediate_handover' function

@@ -84,6 +84,14 @@ class AdvancedRAGChat:
         stop=stop_after_attempt(6),
         before_sleep=before_sleep_log(logger, logging.WARNING),
     )
+    async def openai_chat_completion(self, *args, **kwargs) -> ChatCompletion:
+        return await self.openai_chat_client.chat.completions.create(*args, **kwargs)
+
+    @retry(
+        wait=wait_random_exponential(min=1, max=10),
+        stop=stop_after_attempt(3),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
     def get_payment_promos(self):
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
 
@@ -108,6 +116,11 @@ class AdvancedRAGChat:
             print(f"Error: {e}")
             return ""
 
+    @retry(
+        wait=wait_random_exponential(min=1, max=10),
+        stop=stop_after_attempt(3),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
     def get_highlight_info(self, highlight_name, highlight_url):
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
 
@@ -125,6 +138,11 @@ class AdvancedRAGChat:
             print(f"Error: {e}")
             return ""
 
+    @retry(
+        wait=wait_random_exponential(min=1, max=10),
+        stop=stop_after_attempt(3),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
     def get_highlight_tags(self):
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
 
@@ -145,6 +163,11 @@ class AdvancedRAGChat:
             print(f"Error: {e}")
             return ""
 
+    @retry(
+        wait=wait_random_exponential(min=1, max=10),
+        stop=stop_after_attempt(3),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
     def get_payment_method(self, package_url: str):
         url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
 
@@ -158,9 +181,6 @@ class AdvancedRAGChat:
         except requests.exceptions.RequestException as e:
             print(f"Error: {e}")
             return ""
-
-    async def openai_chat_completion(self, *args, **kwargs) -> ChatCompletion:
-        return await self.openai_chat_client.chat.completions.create(*args, **kwargs)
 
     async def google_search(self, messages):
         # Generate an optimized keyword search query based on the chat history and the last question
