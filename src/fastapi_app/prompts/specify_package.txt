@@ -28,10 +28,10 @@ Instead, trigger the `generic_query` function for responses that fit these patte
 If the following terms appear in the user query OR user is interested/asks about the following call the 'immediate_handover' function: 
 - Lasik
 - ReLEx
-- HPV Vaccines/Vaccination
+- HPV vaccines
 - Food Intolerance/Hidden Food allergy Testing
 - Men's Health/Mediprime
 - Veneer
-- Invisalign
+- Invisalign/Retainers
 - Hair Implant
 - Health Checkup

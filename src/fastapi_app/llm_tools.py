@@ -349,11 +349,11 @@ def build_immediate_handover_function() -> list[ChatCompletionToolParam]:
                 user is sending messages with the following as the subject: 
                     - Lasik
                     - ReLEx
-                    - HPV Vaccines/ Vaccination
+                    - HPV vaccines
                     - Food Intolerance / Hidden Food allergy Testing
                     - Men's Health
                     - Veneer
-                    - Invisalign
+                    - Invisalign/Retainers
                     - Hair Implant
                     - Health Checkup / ตรวจสุขภาพ
                 """,
