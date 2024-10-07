@@ -182,6 +182,27 @@ class AdvancedRAGChat:
             print(f"Error: {e}")
             return ""
 
+    @retry(
+        wait=wait_random_exponential(min=1, max=10),
+        stop=stop_after_attempt(3),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
+    def get_cash_discount(self, package_url: str):
+        url = "https://script.google.com/macros/s/AKfycbw18wXh1o6xiD2WY3wcvkQXGZNn4AY2loJjdEqfBGC22xtluoz27L7VeiAyrcMRsFf6fw/exec"
+
+        try:
+            body = {"info": "discount", "highlight_name": "", "highlight_url": "", "package_url": package_url}
+            res = requests.post(url=url, json=body)
+            res.raise_for_status()
+            data = res.json()
+            if data:
+                return data
+            else:
+                return ""
+        except requests.exceptions.RequestException as e:
+            print(f"Error: {e}")
+            return ""
+
     async def google_search(self, messages):
         # Generate an optimized keyword search query based on the chat history and the last question
         query_messages = copy.deepcopy(messages)
@@ -278,6 +299,7 @@ class AdvancedRAGChat:
 
         specify_package_resp = specify_package_chat_completion.model_dump()
         filter_url = None
+        cash_discount = None
         sources_content = []
 
         if is_welcome_intent(specify_package_chat_completion):
@@ -599,6 +621,7 @@ class AdvancedRAGChat:
                 ]
 
                 sources_content = [f"[{(package.url)}]:{package.to_str_for_narrow_rag()}\n\n" for package in results]
+                cash_discount = self.get_cash_discount(package_url=results[0].url)
                 thought_steps.extend(
                     [
                         ThoughtStep(
@@ -648,6 +671,19 @@ class AdvancedRAGChat:
             {"type": "text", "text": "\n\nHighlight Campaign Sources:\n" + highlight_content}
         )
         messages[-1]["content"].append({"type": "text", "text": "\n\nSources:\n" + content})
+
+        # Append cash discount to final message
+        if cash_discount:
+            messages[-1]["content"].append(
+                {
+                    "type": "text",
+                    "text": f"""
+                            \n\nThe current package the user has inquired about has a cash discount!
+                            Include the following in your response as well :
+                            หากคุณซื้อแพ็กเกจนี้ด้วยการจ่ายเต็มจำนวนผ่าน PromptPay คุณจะได้รับส่วนลดเพิ่ม {cash_discount} บาท
+                        """,
+                }
+            )
 
         # Append the URL to the final message
         if filter_url:
