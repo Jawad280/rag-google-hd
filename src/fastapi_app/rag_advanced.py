@@ -530,6 +530,7 @@ class AdvancedRAGChat:
 
         if is_handover_to_cx(specify_package_chat_completion):
             # LLM to check if we have gathered the information
+            logger.info("Information gathering route...")
             info_messages = copy.deepcopy(messages)
             info_messages.insert(0, {"role": "system", "content": self.gather_template})
             info_response_token_limit = 300
@@ -557,13 +558,16 @@ class AdvancedRAGChat:
 
             info_resp = info_chat_completion.model_dump()
             info_gathered = info_resp["choices"][0]["message"]["content"]
+            logger.info(f"Information gathering question : {info_gathered}")
             thought_steps.extend(
                 [
                     ThoughtStep(title="Prompt to gather info", description=info_messages, props={}),
                     ThoughtStep(title="Information gathered", description=info_gathered, props={}),
                 ]
             )
-            messages[-1]["content"].append({"type": "text", "text": info_gathered})
+            messages[-1]["content"].append(
+                {"type": "text", "text": "Ask the following question to user: " + info_gathered}
+            )
 
             # Build messages for the final chat completion
             messages.insert(0, {"role": "system", "content": self.gather_template})
