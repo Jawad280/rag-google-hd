@@ -250,7 +250,7 @@ module openAi 'core/ai/cognitiveservices.bicep' = {
     sku: {
       name: 'S0'
     }
-    disableLocalAuth: true
+    disableLocalAuth: false
     deployments: [
       {
         name: chatConfig.deploymentName
